@@ -125,9 +125,14 @@ npm run db:generate
 npm run db:migrate
 ```
 
-Ya existe una migration inicial generada (`src/data/db/migrations/0000_*.sql`) que
-crea las tablas `images`, `categories` y `annotations`. Solo necesitas ejecutar
-`npm run db:migrate` contra tu MariaDB para aplicarla.
+Ya existen migrations generadas en `src/data/db/migrations/`:
+
+- `0000_*.sql` — crea las tablas `images`, `categories` y `annotations`.
+- `0001_*.sql` — agrega la columna `iscrowd` a `annotations` (flag de COCO para
+  marcar si un bounding box es un objeto individual o un grupo superpuesto).
+
+Solo necesitas ejecutar `npm run db:migrate` contra tu MariaDB para aplicarlas
+todas en orden.
 
 Scripts adicionales disponibles:
 
@@ -172,7 +177,7 @@ npm run typecheck     # compilar TypeScript sin generar archivos (validación)
   - `categories` — categorías/clases para anotar
   - `annotations` — bounding boxes, relacionados con una imagen y una categoría, con
     los campos necesarios para una futura exportación a COCO (`bbox_x`, `bbox_y`,
-    `bbox_width`, `bbox_height`, `area`)
+    `bbox_width`, `bbox_height`, `area`, `iscrowd`)
 - Migration inicial generada y lista para aplicarse.
 - Un endpoint `GET /health` como única "funcionalidad" real, usado únicamente para
   validar que el flujo UI → Logic → Data → MariaDB funciona de punta a punta.
