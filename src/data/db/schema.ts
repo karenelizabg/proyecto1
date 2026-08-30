@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   double,
   index,
   int,
@@ -68,6 +69,7 @@ export const annotations = mysqlTable(
     bboxWidth: double('bbox_width').notNull(),
     bboxHeight: double('bbox_height').notNull(),
     area: double('area'),
+    isCrowd: boolean('iscrowd').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
