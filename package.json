@@ -1,7 +1,7 @@
 {
   "name": "image-annotation-repo",
   "version": "0.1.0",
-  "description": "Monolito para repositorio de imagenes y anotaciones (Fase 1: skeleton/infra)",
+  "description": "Monolito para repositorio de imágenes y anotaciones (Fase 2: backend/data)",
   "main": "dist/ui/server.js",
   "scripts": {
     "test": "vitest run",
@@ -9,6 +9,7 @@
     "dev": "tsx watch src/ui/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/ui/server.js",
+    "start:prod": "NODE_ENV=production PORT=3100 node dist/ui/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -23,7 +24,7 @@
   "author": "",
   "license": "UNLICENSED",
   "type": "module",
-  "private": "true",
+  "private": true,
   "dependencies": {
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
