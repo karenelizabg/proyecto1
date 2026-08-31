@@ -1,21 +1,33 @@
+import { z } from 'zod';
+
 /**
- * Datos mínimos necesarios para validar una imagen antes de subirla.
+ * Tipos de imagen permitidos para el portal.
  */
-export interface ImageUploadInput {
-  mimeType: string;
-  sizeBytes: number;
-}
+const imageUploadSchema = z.object({
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+
+  sizeBytes: z.number().int().positive(),
+});
+
+export type ImageUploadInput = z.infer<typeof imageUploadSchema>;
 
 export interface ImageUploadValidationResult {
   success: boolean;
 }
 
 /**
- * Implementación temporal para iniciar el ciclo TDD en RED.
+ * Valida el tipo y tamaño de una imagen antes de subirla.
  */
 export function validateImageUpload(
-  _input: ImageUploadInput,
-  _maxSizeBytes: number,
+  input: unknown,
+  maxSizeBytes: number,
 ): ImageUploadValidationResult {
-  return { success: false };
+  const schema = imageUploadSchema.refine((image) => image.sizeBytes <= maxSizeBytes, {
+    message: 'La imagen excede el tamaño máximo permitido.',
+    path: ['sizeBytes'],
+  });
+
+  return {
+    success: schema.safeParse(input).success,
+  };
 }
