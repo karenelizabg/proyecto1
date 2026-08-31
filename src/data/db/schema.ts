@@ -59,37 +59,23 @@ export const images = mysqlTable(
     }).notNull(),
 
     // Estado actual del proceso de anotación.
-    status: mysqlEnum('status', [
-      'pending',
-      'in_progress',
-      'completed',
-    ])
+    status: mysqlEnum('status', ['pending', 'in_progress', 'completed'])
       .notNull()
       .default('pending'),
 
     // Fecha de creación del registro.
-    createdAt: timestamp('created_at')
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
 
     // Fecha de la última actualización.
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .onUpdateNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
 
   // Índices para mejorar búsquedas y filtros.
   (table) => [
-    uniqueIndex('images_storage_key_unique').on(
-      table.storageKey,
-    ),
+    uniqueIndex('images_storage_key_unique').on(table.storageKey),
     index('images_status_idx').on(table.status),
     index('images_created_at_idx').on(table.createdAt),
-    index('images_status_created_at_idx').on(
-      table.status,
-      table.createdAt,
-    ),
+    index('images_status_created_at_idx').on(table.status, table.createdAt),
   ],
 );
 /**
@@ -121,15 +107,11 @@ export const categories = mysqlTable(
     }).notNull(),
 
     // Fecha de creación de la categoría.
-    createdAt: timestamp('created_at')
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
 
   // Evita que existan dos categorías con el mismo nombre.
-  (table) => [
-    uniqueIndex('categories_name_unique').on(table.name),
-  ],
+  (table) => [uniqueIndex('categories_name_unique').on(table.name)],
 );
 
 /**
@@ -181,30 +163,20 @@ export const annotations = mysqlTable(
     area: double('area').notNull(),
 
     // Campo requerido por el formato COCO.
-    isCrowd: boolean('iscrowd')
-      .notNull()
-      .default(false),
+    isCrowd: boolean('iscrowd').notNull().default(false),
 
     // Fecha de creación de la anotación.
-    createdAt: timestamp('created_at')
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
 
     // Fecha de la última modificación.
-    updatedAt: timestamp('updated_at')
-      .notNull()
-      .defaultNow()
-      .onUpdateNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
 
   // Índices para buscar anotaciones por imagen y categoría.
   (table) => [
     index('annotations_image_id_idx').on(table.imageId),
     index('annotations_category_id_idx').on(table.categoryId),
-    index('annotations_image_category_idx').on(
-      table.imageId,
-      table.categoryId,
-    ),
+    index('annotations_image_category_idx').on(table.imageId, table.categoryId),
   ],
 );
 
@@ -218,30 +190,24 @@ export const imagesRelations = relations(images, ({ many }) => ({
 /**
  * Relación: una categoría puede pertenecer a muchas anotaciones.
  */
-export const categoriesRelations = relations(
-  categories,
-  ({ many }) => ({
-    annotations: many(annotations),
-  }),
-);
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  annotations: many(annotations),
+}));
 
 /**
  * Cada anotación pertenece a una imagen y a una categoría.
  */
-export const annotationsRelations = relations(
-  annotations,
-  ({ one }) => ({
-    image: one(images, {
-      fields: [annotations.imageId],
-      references: [images.id],
-    }),
-
-    category: one(categories, {
-      fields: [annotations.categoryId],
-      references: [categories.id],
-    }),
+export const annotationsRelations = relations(annotations, ({ one }) => ({
+  image: one(images, {
+    fields: [annotations.imageId],
+    references: [images.id],
   }),
-);
+
+  category: one(categories, {
+    fields: [annotations.categoryId],
+    references: [categories.id],
+  }),
+}));
 
 /**
  * Tipos TypeScript generados automáticamente desde el esquema.
@@ -254,5 +220,3 @@ export type NewCategory = typeof categories.$inferInsert;
 
 export type Annotation = typeof annotations.$inferSelect;
 export type NewAnnotation = typeof annotations.$inferInsert;
-
-
