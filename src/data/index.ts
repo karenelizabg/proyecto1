@@ -6,6 +6,10 @@
  */
 export { db, pool } from './db/client.js';
 export * as schema from './db/schema.js';
-
+export { createImageMetadata } from './repositories/image.repository.js';
 // Funciones de almacenamiento en MinIO.
-export { ensureMinioBucket } from './storage/minio.storage.js';
+export {
+  deleteImageObject,
+  ensureMinioBucket,
+  uploadImageObject,
+} from './storage/minio.storage.js';

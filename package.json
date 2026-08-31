@@ -28,12 +28,15 @@
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "minio": "^8.0.7",
+    "multer": "^2.3.0",
     "mysql2": "^3.24.2",
+    "sharp": "^0.35.4",
     "zod": "^4.5.4"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.11",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.4.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.13",

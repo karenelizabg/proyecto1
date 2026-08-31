@@ -11,3 +11,23 @@ export async function ensureMinioBucket(): Promise<void> {
     await minioClient.makeBucket(minioBucket);
   }
 }
+
+/**
+ * Guarda un archivo en MinIO.
+ */
+export async function uploadImageObject(
+  storageKey: string,
+  buffer: Buffer,
+  mimeType: string,
+): Promise<void> {
+  await minioClient.putObject(minioBucket, storageKey, buffer, buffer.length, {
+    'Content-Type': mimeType,
+  });
+}
+
+/**
+ * Elimina un archivo almacenado en MinIO.
+ */
+export async function deleteImageObject(storageKey: string): Promise<void> {
+  await minioClient.removeObject(minioBucket, storageKey);
+}

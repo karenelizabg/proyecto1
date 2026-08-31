@@ -25,6 +25,12 @@ const envSchema = z.object({
   MINIO_SECRET_KEY: z.string().min(1),
 
   MINIO_BUCKET: z.string().min(3),
+
+  MAX_UPLOAD_SIZE_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 1024 * 1024),
 });
 
 /**

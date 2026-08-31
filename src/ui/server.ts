@@ -1,7 +1,7 @@
 import express from 'express';
-
+import multer from 'multer';
 import { env } from '../config/env.js';
-import { checkHealth, initializeApplication } from '../logic/index.js';
+import { checkHealth, initializeApplication, uploadImage } from '../logic/index.js';
 
 /**
  * Punto de entrada de la capa UI.
@@ -11,6 +11,17 @@ import { checkHealth, initializeApplication } from '../logic/index.js';
  */
 const app = express();
 const port = env.PORT;
+
+/**
+ * Multer mantiene temporalmente la imagen en memoria.
+ * El archivo real posteriormente se almacena en MinIO.
+ */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: env.MAX_UPLOAD_SIZE_BYTES,
+  },
+});
 
 app.get('/', (_req, res) => {
   res.json({
@@ -25,6 +36,62 @@ app.get('/health', async (_req, res) => {
 
   res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
+
+/**
+ * Recibe una imagen y delega su procesamiento a Logic.
+ */
+app.post('/images', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({
+      error: 'Debe enviarse una imagen.',
+    });
+    return;
+  }
+
+  try {
+    const image = await uploadImage({
+      filename: req.file.originalname,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+      buffer: req.file.buffer,
+    });
+
+    res.status(201).json({
+      message: 'Imagen cargada correctamente.',
+      image,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Error desconocido al cargar la imagen.';
+
+    res.status(400).json({
+      error: message,
+    });
+  }
+});
+
+/**
+ * Maneja errores generados por Multer.
+ */
+app.use(
+  (error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({
+          error: 'La imagen excede el tamaño máximo permitido.',
+        });
+        return;
+      }
+
+      res.status(400).json({
+        error: 'No se pudo procesar el archivo.',
+      });
+      return;
+    }
+
+    next(error);
+  },
+);
 
 /**
  * Inicializa los servicios necesarios antes de levantar el servidor.
