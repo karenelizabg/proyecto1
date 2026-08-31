@@ -1,35 +1,110 @@
-import 'dotenv/config';
 import express from 'express';
-import { checkHealth } from '../logic/index.js';
+import multer from 'multer';
+import { env } from '../config/env.js';
+import { checkHealth, initializeApplication, uploadImage } from '../logic/index.js';
 
 /**
  * Punto de entrada de la capa UI.
  *
- * Responsabilidad: presentación/interfaz (en fases posteriores, subida
- * de imágenes y anotación). Esta capa NUNCA debe importar directamente
- * desde `data`; solo debe hablar con `logic`.
- *
- * En esta fase el único endpoint real es un healthcheck, usado para
- * validar que el flujo UI → Logic → Data → MariaDB funciona de punta
- * a punta. No hay rutas de subida, anotación ni exportación todavía.
+ * La UI nunca accede directamente a MariaDB ni a MinIO;
+ * únicamente se comunica con la capa Logic.
  */
 const app = express();
-const port = Number(process.env.PORT ?? 3000);
+const port = env.PORT;
+
+/**
+ * Multer mantiene temporalmente la imagen en memoria.
+ * El archivo real posteriormente se almacena en MinIO.
+ */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: env.MAX_UPLOAD_SIZE_BYTES,
+  },
+});
 
 app.get('/', (_req, res) => {
   res.json({
     project: 'image-annotation-repo',
-    phase: 1,
-    message: 'Skeleton UI → Logic → Data funcionando.',
+    phase: 2,
+    message: 'UI → Logic → Data funcionando.',
   });
 });
 
 app.get('/health', async (_req, res) => {
   const health = await checkHealth();
+
   res.status(health.status === 'ok' ? 200 : 503).json(health);
 });
 
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Servidor escuchando en http://localhost:${port}`);
+/**
+ * Recibe una imagen y delega su procesamiento a Logic.
+ */
+app.post('/images', upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({
+      error: 'Debe enviarse una imagen.',
+    });
+    return;
+  }
+
+  try {
+    const image = await uploadImage({
+      filename: req.file.originalname,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+      buffer: req.file.buffer,
+    });
+
+    res.status(201).json({
+      message: 'Imagen cargada correctamente.',
+      image,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Error desconocido al cargar la imagen.';
+
+    res.status(400).json({
+      error: message,
+    });
+  }
+});
+
+/**
+ * Maneja errores generados por Multer.
+ */
+app.use(
+  (error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        res.status(413).json({
+          error: 'La imagen excede el tamaño máximo permitido.',
+        });
+        return;
+      }
+
+      res.status(400).json({
+        error: 'No se pudo procesar el archivo.',
+      });
+      return;
+    }
+
+    next(error);
+  },
+);
+
+/**
+ * Inicializa los servicios necesarios antes de levantar el servidor.
+ */
+async function startServer(): Promise<void> {
+  await initializeApplication();
+
+  app.listen(port, () => {
+    console.log(`Servidor escuchando en http://localhost:${port}`);
+  });
+}
+
+startServer().catch((error: unknown) => {
+  console.error('Error al iniciar la aplicación:', error);
+  process.exit(1);
 });
