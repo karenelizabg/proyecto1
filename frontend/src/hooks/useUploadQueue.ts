@@ -22,7 +22,7 @@ export interface PendingEntry {
 }
 
 function makeClientId(): string {
-  return `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `upload-${crypto.randomUUID()}`;
 }
 
 export function useUploadQueue(showToast: (message: string, variant?: "error" | "success" | "info") => void) {
