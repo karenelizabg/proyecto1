@@ -11,4 +11,6 @@
 export type { HealthStatus } from './health.service.js';
 export { checkHealth } from './health.service.js';
 export { uploadImage } from './image-upload.service.js';
+export type { SearchImagesInput, SearchImagesResult } from './image-search.service.js';
+export { searchImages } from './image-search.service.js';
 export { initializeApplication } from './startup.service.js';
