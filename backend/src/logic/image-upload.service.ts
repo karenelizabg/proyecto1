@@ -10,6 +10,7 @@ import {
   findImageById,
   uploadImageObject,
 } from '../data/index.js';
+
 import { validateImageUpload } from './image-upload.validation.js';
 
 export interface UploadImageInput {
@@ -96,3 +97,4 @@ export async function deleteImage(imageId: number): Promise<void> {
   await deleteImageRow(imageId);
   await deleteImageObject(image.storageKey);
 }
+

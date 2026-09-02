@@ -10,6 +10,7 @@
 
 export type { HealthStatus } from './health.service.js';
 export { checkHealth } from './health.service.js';
+
 export { deleteImage, uploadImage } from './image-upload.service.js';
 export type { SearchImagesInput, SearchImagesResult } from './image-search.service.js';
 export { searchImages } from './image-search.service.js';
@@ -25,3 +26,4 @@ export {
 export type { ImageFile } from './image-file.service.js';
 export { getImageFile } from './image-file.service.js';
 export { setImageStatus } from './image-status.service.js';
+
