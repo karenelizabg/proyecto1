@@ -15,11 +15,13 @@ export function CategoryPopover({ categories, style, onConfirm, onCancel }: Cate
   return (
     <div
       style={style}
-      className="absolute z-30 w-56 rounded-xl border border-neutral-200 bg-white p-3 shadow-lg"
+      className="absolute z-30 w-56 origin-top-left animate-popover-in rounded-xl border border-border bg-surface p-3 shadow-popover"
     >
-      <p className="mb-2 text-xs font-medium text-neutral-500">Elige una categoría</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+        Elige una categoría
+      </p>
       {categories.length === 0 ? (
-        <p className="text-xs text-neutral-400">No hay categorías disponibles.</p>
+        <p className="text-xs text-ink-faint">No hay categorías disponibles.</p>
       ) : (
         <ul className="mb-3 max-h-48 overflow-y-auto">
           {categories.map((category) => (
@@ -28,7 +30,9 @@ export function CategoryPopover({ categories, style, onConfirm, onCancel }: Cate
                 type="button"
                 onClick={() => setSelectedId(category.id)}
                 className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${
-                  selectedId === category.id ? "bg-indigo-50 text-indigo-700" : "hover:bg-neutral-50"
+                  selectedId === category.id
+                    ? "bg-accent-lilac-soft font-medium text-accent-lilac ring-1 ring-inset ring-accent-lilac/30"
+                    : "text-ink hover:bg-sidebar"
                 }`}
               >
                 <span
@@ -42,11 +46,11 @@ export function CategoryPopover({ categories, style, onConfirm, onCancel }: Cate
           ))}
         </ul>
       )}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 border-t border-border pt-2.5">
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg px-2.5 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100"
+          className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink-muted transition-colors hover:bg-sidebar"
         >
           Cancelar
         </button>
@@ -54,7 +58,7 @@ export function CategoryPopover({ categories, style, onConfirm, onCancel }: Cate
           type="button"
           disabled={selectedId === null}
           onClick={() => selectedId !== null && onConfirm(selectedId)}
-          className="rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="rounded-lg bg-accent-lilac px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-accent-lilac/90 disabled:cursor-not-allowed disabled:bg-border disabled:text-ink-faint disabled:shadow-none"
         >
           Confirmar
         </button>

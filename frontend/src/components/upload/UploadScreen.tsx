@@ -2,10 +2,15 @@ import { useNavigate } from "react-router-dom";
 import { Dropzone } from "./Dropzone";
 import { UploadFeedbackList } from "./UploadFeedbackList";
 import { PendingImageList } from "./PendingImageList";
+import { Button } from "../ui/Button";
+import { Stepper } from "../ui/Stepper";
 import { useUploadQueue } from "../../hooks/useUploadQueue";
 import { useToasts } from "../../hooks/useToasts";
 import { ToastStack } from "../shared/ToastStack";
 import type { AnnotateNavigationState } from "../../types/navigation";
+import type { ImageStatus } from "../../types/schemas";
+
+const UPLOAD_STEPS = ["Subir fotografías", "Identificar objetos"];
 
 export function UploadScreen() {
   const navigate = useNavigate();
@@ -19,6 +24,7 @@ export function UploadScreen() {
     addFiles,
     retryUpload,
     toggleSelect,
+    deleteEntry,
     reloadPending,
   } = useUploadQueue(showToast);
 
@@ -27,19 +33,19 @@ export function UploadScreen() {
   const handleAnnotateSelected = () => {
     if (selectedList.length === 0) return;
 
-    // Todas las entradas listadas aquí vienen de status=pending (recién
-    // subidas o ya existentes en esa lista), así que su status real es
-    // 'pending' — se pasa por estado de navegación para que el Canvas no
-    // tenga que adivinarlo ni depender de un endpoint adicional.
+    // Esta lista incluye tanto 'pending' como 'in_progress' (ver
+    // searchPendingImages) — se pasa el status real de cada entrada por
+    // estado de navegación para que el Canvas no tenga que adivinarlo ni
+    // depender de un endpoint adicional.
     const filenames: Record<number, string> = {};
-    const statuses: Record<number, "pending"> = {};
+    const statuses: Record<number, ImageStatus> = {};
     for (const entry of pendingEntries) {
       if (selectedIds.has(entry.id)) {
         filenames[entry.id] = entry.filename;
-        statuses[entry.id] = "pending";
+        statuses[entry.id] = entry.status;
       }
     }
-    const state: AnnotateNavigationState = { filenames, statuses };
+    const state: AnnotateNavigationState = { filenames, statuses, from: "upload" };
 
     const [first, ...rest] = selectedList;
     if (rest.length === 0) {
@@ -50,48 +56,51 @@ export function UploadScreen() {
   };
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 py-10">
-      <header>
-        <h1 className="text-xl font-semibold text-neutral-900">Subir imágenes</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Arrastra imágenes o selecciónalas desde tu equipo para agregarlas a la cola de
-          anotación.
-        </p>
-      </header>
+    <main className="flex-1 px-6 py-8 lg:px-10">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+        <header className="flex flex-col gap-3">
+          <Stepper steps={UPLOAD_STEPS} currentIndex={0} />
+          <div>
+            <h1 className="text-xl font-semibold text-ink">Subir fotografías</h1>
+            <p className="mt-1 text-sm text-ink-muted">
+              Arrastra fotografías o selecciónalas desde tu equipo. Cuando termines, elige cuáles
+              quieres identificar y pasa al siguiente paso.
+            </p>
+          </div>
+        </header>
 
-      <Dropzone onFiles={addFiles} />
+        <Dropzone onFiles={addFiles} />
 
-      <UploadFeedbackList items={uploadItems} onRetry={retryUpload} />
+        <UploadFeedbackList items={uploadItems} onRetry={retryUpload} />
 
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-800">Pendientes por anotar</h2>
-          <span className="text-xs text-neutral-400">
-            {selectedList.length > 0 ? `${selectedList.length} seleccionada(s)` : ""}
-          </span>
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-ink">Pendientes por identificar</h2>
+            <span className="text-xs text-ink-faint">
+              {selectedList.length > 0 ? `${selectedList.length} seleccionada(s)` : ""}
+            </span>
+          </div>
+          <PendingImageList
+            entries={pendingEntries}
+            isLoading={isLoadingPending}
+            error={pendingError}
+            selectedIds={selectedIds}
+            onToggle={toggleSelect}
+            onDelete={(id) => void deleteEntry(id)}
+            onRetry={reloadPending}
+          />
+        </section>
+
+        <div className="sticky bottom-6 flex justify-end">
+          <Button variant="primary" size="md" disabled={selectedList.length === 0} onClick={handleAnnotateSelected}>
+            Identificar objetos
+            {selectedList.length > 0 ? ` (${selectedList.length})` : ""}
+            <span aria-hidden>→</span>
+          </Button>
         </div>
-        <PendingImageList
-          entries={pendingEntries}
-          isLoading={isLoadingPending}
-          error={pendingError}
-          selectedIds={selectedIds}
-          onToggle={toggleSelect}
-          onRetry={reloadPending}
-        />
-      </section>
 
-      <div className="sticky bottom-6 flex justify-end">
-        <button
-          type="button"
-          disabled={selectedList.length === 0}
-          onClick={handleAnnotateSelected}
-          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
-        >
-          Anotar seleccionadas
-        </button>
+        <ToastStack toasts={toasts} onDismiss={dismissToast} />
       </div>
-
-      <ToastStack toasts={toasts} onDismiss={dismissToast} />
-    </div>
+    </main>
   );
 }

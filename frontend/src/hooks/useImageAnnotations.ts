@@ -185,6 +185,23 @@ export function useImageAnnotations(
     [annotations, imageId, pushUndo, selectedId, showToast]
   );
 
+  /**
+   * Persiste el status "in_progress" en el backend. `markInProgressIfNeeded`
+   * solo actualiza el estado local (optimista) al crear la primera caja —
+   * esto es lo que realmente lo guarda, para usarse p. ej. al salir de la
+   * pantalla con un borrador ("Guardar borrador").
+   */
+  const saveDraft = useCallback(async () => {
+    try {
+      await patchImageStatus(imageId, "in_progress");
+      setImageMeta((prev) => (prev && prev.status !== "completed" ? { ...prev, status: "in_progress" } : prev));
+      return true;
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "No se pudo guardar el borrador.", "error");
+      return false;
+    }
+  }, [imageId, showToast]);
+
   const finalize = useCallback(async () => {
     try {
       await patchImageStatus(imageId, "completed");
@@ -217,6 +234,7 @@ export function useImageAnnotations(
     commitBoxChange,
     removeBox,
     finalize,
+    saveDraft,
     undo: handleUndo,
     canUndo,
   };

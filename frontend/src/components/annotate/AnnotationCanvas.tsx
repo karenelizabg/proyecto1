@@ -310,12 +310,28 @@ export function AnnotationCanvas({
 
         {drawnRect && (
           <div
-            className="pointer-events-none absolute border-2 border-indigo-500 bg-indigo-500/10"
+            className="pointer-events-none absolute border-2 border-accent-lilac bg-accent-lilac/10"
             style={{
               left: drawnRect.x * displayScale,
               top: drawnRect.y * displayScale,
               width: drawnRect.w * displayScale,
               height: drawnRect.h * displayScale,
+            }}
+          />
+        )}
+
+        {/* Caja ya soltada, en espera de que se elija su categoría. Debe
+            seguir visible mientras el popover está abierto — antes solo se
+            usaba para calcular la posición del popover y desaparecía al
+            soltar el mouse. */}
+        {pendingBox && (
+          <div
+            className="pointer-events-none absolute animate-pulse rounded-sm border-2 border-dashed border-accent-lilac bg-accent-lilac/10"
+            style={{
+              left: pendingBox.bbox.bboxX * displayScale,
+              top: pendingBox.bbox.bboxY * displayScale,
+              width: pendingBox.bbox.bboxWidth * displayScale,
+              height: pendingBox.bbox.bboxHeight * displayScale,
             }}
           />
         )}

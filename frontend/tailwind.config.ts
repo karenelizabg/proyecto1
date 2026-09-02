@@ -45,6 +45,15 @@ export default {
         card: "0 1px 2px rgba(28,27,26,0.04), 0 1px 8px rgba(28,27,26,0.04)",
         popover: "0 8px 24px rgba(28,27,26,0.10)",
       },
+      keyframes: {
+        "popover-in": {
+          from: { opacity: "0", transform: "scale(0.96) translateY(-2px)" },
+          to: { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+      },
+      animation: {
+        "popover-in": "popover-in 0.12s ease-out",
+      },
     },
   },
   plugins: [],

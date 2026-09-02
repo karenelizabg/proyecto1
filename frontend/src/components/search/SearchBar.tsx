@@ -28,7 +28,7 @@ export function SearchBar({ initialValue, onSearch }: SearchBarProps): JSX.Eleme
         type="submit"
         className="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink/90"
       >
-        Search
+        Buscar
       </button>
     </form>
   );

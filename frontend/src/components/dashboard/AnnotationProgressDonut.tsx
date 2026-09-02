@@ -6,13 +6,13 @@ type AnnotationProgressDonutProps = {
 };
 
 const COLORS = {
-  annotated: '#34d399', // mint, matches the pastel accent palette
-  pending: '#e2e8f0', // neutral slate
+  annotated: '#2FAF87', // accent-mint
+  pending: '#E7E5E1', // border
 } as const;
 
 const segments = [
-  { key: 'annotated', label: 'Annotated' },
-  { key: 'pending', label: 'Pending' },
+  { key: 'annotated', label: 'Anotadas' },
+  { key: 'pending', label: 'Pendientes' },
 ] as const;
 
 export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutProps) {
@@ -20,7 +20,7 @@ export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutPro
 
   if (total === 0) {
     return (
-      <div className="flex h-72 items-center justify-center rounded-2xl bg-white text-sm text-slate-400 shadow-sm ring-1 ring-slate-100">
+      <div className="flex h-72 items-center justify-center rounded-2xl border border-border bg-surface text-sm text-ink-faint">
         Aún no hay imágenes para anotar.
       </div>
     );
@@ -30,8 +30,8 @@ export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutPro
   const annotatedPct = Math.round((progress.annotated / total) * 100);
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-      <h3 className="text-sm font-medium text-slate-700">Annotation progress</h3>
+    <div className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+      <h3 className="text-sm font-medium text-ink">Progreso de anotación</h3>
       <div className="mt-3 flex items-center gap-6">
         <div className="relative h-40 w-40 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
@@ -52,8 +52,8 @@ export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutPro
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-semibold text-slate-900">{annotatedPct}%</span>
-            <span className="text-xs text-slate-400">annotated</span>
+            <span className="text-2xl font-semibold text-ink">{annotatedPct}%</span>
+            <span className="text-xs text-ink-faint">anotado</span>
           </div>
         </div>
         <ul className="space-y-3 text-sm">
@@ -64,8 +64,8 @@ export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutPro
                 style={{ backgroundColor: COLORS[entry.key] }}
                 aria-hidden="true"
               />
-              <span className="text-slate-600">{entry.label}</span>
-              <span className="ml-auto font-medium text-slate-900">{entry.value}</span>
+              <span className="text-ink-muted">{entry.label}</span>
+              <span className="ml-auto font-medium text-ink">{entry.value}</span>
             </li>
           ))}
         </ul>

@@ -1,34 +1,57 @@
+import { Search, Upload } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AnnotationProgressDonut } from '../components/dashboard/AnnotationProgressDonut';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
-import { ErrorState } from '../components/dashboard/ErrorState';
 import { ObjectsPerClassChart } from '../components/dashboard/ObjectsPerClassChart';
 import { RecentUploads } from '../components/dashboard/RecentUploads';
 import { StatCard } from '../components/dashboard/StatCard';
-import { Sidebar } from '../components/sidebar/Sidebar';
+import { ErrorState } from '../components/ui/ErrorState';
 import { useDashboardSummary } from '../hooks/useDashboardSummary';
 
 export function DashboardPage() {
   const summary = useDashboardSummary();
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 px-6 py-6 lg:px-10 lg:py-8">
-        <header className="mb-6">
-          <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
+    <main className="flex-1 px-6 py-6 lg:px-10 lg:py-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-ink">Tablero</h1>
+            <p className="mt-1 text-sm text-ink-muted">
+              Visión general del estado de tus fotografías.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              to="/search"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-sidebar"
+            >
+              <Search className="h-4 w-4" aria-hidden />
+              Buscar fotografías
+            </Link>
+            <Link
+              to="/upload"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent-lilac px-3 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-lilac/90"
+            >
+              <Upload className="h-4 w-4" aria-hidden />
+              Subir fotografías
+            </Link>
+          </div>
         </header>
 
         {summary.status === 'loading' && <DashboardSkeleton />}
 
-        {summary.status === 'error' && <ErrorState message={summary.message} onRetry={summary.reload} />}
+        {summary.status === 'error' && (
+          <ErrorState title="No se pudo cargar el tablero." message={summary.message} onRetry={summary.reload} />
+        )}
 
         {summary.status === 'success' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Images uploaded" value={summary.data.imagesUploaded} accent="lilac" />
-              <StatCard label="Images annotated" value={summary.data.imagesAnnotated} accent="mint" />
-              <StatCard label="Bounding boxes" value={summary.data.boundingBoxes} accent="peach" />
-              <StatCard label="Categories" value={summary.data.categoriesCount} accent="blue" />
+              <StatCard label="Fotografías subidas" value={summary.data.imagesUploaded} accent="lilac" />
+              <StatCard label="Fotografías anotadas" value={summary.data.imagesAnnotated} accent="mint" />
+              <StatCard label="Objetos identificados" value={summary.data.boundingBoxes} accent="peach" />
+              <StatCard label="Categorías" value={summary.data.categoriesCount} accent="blue" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -39,7 +62,7 @@ export function DashboardPage() {
             <RecentUploads uploads={summary.data.recentUploads} />
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

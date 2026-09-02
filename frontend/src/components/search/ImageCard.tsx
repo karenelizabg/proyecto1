@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { ImageSearchItem } from "@/api/schemas";
 import { StatusBadge } from "./StatusBadge";
+import type { AnnotateNavigationState } from "../../types/navigation";
 
 interface ImageCardProps {
   image: ImageSearchItem;
@@ -12,7 +13,10 @@ export function ImageCard({ image }: ImageCardProps): JSX.Element {
   return (
     <button
       type="button"
-      onClick={() => navigate(`/annotate/${image.id}`)}
+      onClick={() => {
+        const state: AnnotateNavigationState = { from: "search" };
+        navigate(`/annotate/${image.id}`, { state });
+      }}
       className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-card transition-shadow hover:shadow-popover"
     >
       <div className="aspect-square w-full overflow-hidden bg-sidebar">
