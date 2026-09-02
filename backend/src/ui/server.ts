@@ -1,7 +1,14 @@
 import express from 'express';
 import multer from 'multer';
 import { env } from '../config/env.js';
-import { checkHealth, initializeApplication, uploadImage } from '../logic/index.js';
+import { checkHealth, initializeApplication, searchImages, uploadImage } from '../logic/index.js';
+
+const IMAGE_STATUS_VALUES = ['pending', 'in_progress', 'completed'] as const;
+type ImageStatusParam = (typeof IMAGE_STATUS_VALUES)[number];
+
+function isImageStatus(value: unknown): value is ImageStatusParam {
+  return typeof value === 'string' && (IMAGE_STATUS_VALUES as readonly string[]).includes(value);
+}
 
 /**
  * Punto de entrada de la capa UI.
@@ -68,6 +75,34 @@ app.post('/images', upload.single('image'), async (req, res) => {
       error: message,
     });
   }
+});
+
+/**
+ * Busca imágenes paginadas, opcionalmente filtradas por status.
+ */
+app.get('/images/search', async (req, res) => {
+  const statusParam = req.query.status;
+
+  if (statusParam !== undefined && !isImageStatus(statusParam)) {
+    res.status(400).json({
+      error: 'El parámetro status debe ser "pending", "in_progress" o "completed".',
+    });
+    return;
+  }
+
+  const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
+  const pageSize = Math.min(
+    100,
+    Math.max(1, Number.parseInt(String(req.query.pageSize ?? '50'), 10) || 50),
+  );
+
+  const result = await searchImages({
+    status: statusParam,
+    page,
+    pageSize,
+  });
+
+  res.status(200).json(result);
 });
 
 /**
