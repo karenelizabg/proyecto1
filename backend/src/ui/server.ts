@@ -63,10 +63,10 @@ app.post('/images', upload.single('image'), async (req, res) => {
       buffer: req.file.buffer,
     });
 
-    res.status(201).json({
-      message: 'Imagen cargada correctamente.',
-      image,
-    });
+    // El body va plano (sin wrapper), así coincide con el contrato que
+    // espera el frontend (imageUploadResponseSchema): id, filename,
+    // storageKey, width, height directamente en la raíz.
+    res.status(201).json(image);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Error desconocido al cargar la imagen.';
