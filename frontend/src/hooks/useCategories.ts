@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getJson } from "@/api/client";
-import { categoriesResponseSchema, type Category } from "@/api/schemas";
+import { getCategories } from "../lib/api/categories";
+import type { Category } from "../types/schemas";
 
 interface UseCategoriesResult {
   categories: Category[];
@@ -16,30 +16,27 @@ export function useCategories(): UseCategoriesResult {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const controller = new AbortController();
-
+    let cancelled = false;
     setIsLoading(true);
     setError(null);
 
-    getJson("/categories", categoriesResponseSchema, { signal: controller.signal })
-      .then((data) => {
-        setCategories(data);
+    getCategories()
+      .then((result) => {
+        if (!cancelled) setCategories(result);
       })
       .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : "No se pudieron cargar las categorías.");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "No se pudieron cargar las categorías.");
+        }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [attempt]);
 
-  return {
-    categories,
-    isLoading,
-    error,
-    retry: () => setAttempt((n) => n + 1),
-  };
+  return { categories, isLoading, error, retry: () => setAttempt((n) => n + 1) };
 }
