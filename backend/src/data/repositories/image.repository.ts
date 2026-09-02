@@ -1,4 +1,4 @@
-import { count, desc, eq } from 'drizzle-orm';
+import { count, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { images, type Image, type NewImage } from '../db/schema.js';
 
@@ -20,7 +20,8 @@ export async function createImageMetadata(image: NewImage): Promise<number> {
 }
 
 export interface FindImagesOptions {
-  status?: ImageStatusValue;
+  /** Uno o varios status a incluir. Sin filtro si se omite. */
+  status?: ImageStatusValue | ImageStatusValue[];
   page: number;
   pageSize: number;
 }
@@ -31,11 +32,21 @@ export interface FindImagesResult {
 }
 
 /**
- * Busca imágenes en MariaDB, opcionalmente filtradas por status, con
- * paginación y ordenadas de más reciente a más antigua.
+ * Busca imágenes en MariaDB, opcionalmente filtradas por uno o varios
+ * status, con paginación y ordenadas de más reciente a más antigua.
  */
 export async function findImages(options: FindImagesOptions): Promise<FindImagesResult> {
-  const where = options.status ? eq(images.status, options.status) : undefined;
+  const statuses = options.status
+    ? Array.isArray(options.status)
+      ? options.status
+      : [options.status]
+    : null;
+  const firstStatus = statuses?.[0];
+  const where = !statuses
+    ? undefined
+    : statuses.length === 1 && firstStatus
+      ? eq(images.status, firstStatus)
+      : inArray(images.status, statuses);
   const offset = (options.page - 1) * options.pageSize;
 
   const [data, totalRows] = await Promise.all([
@@ -53,4 +64,27 @@ export async function findImages(options: FindImagesOptions): Promise<FindImages
     data,
     total: totalRows[0]?.value ?? 0,
   };
+}
+
+/**
+ * Busca una imagen por id. Devuelve null si no existe.
+ */
+export async function findImageById(id: number): Promise<Image | null> {
+  const rows = await db.select().from(images).where(eq(images.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Actualiza el status de una imagen.
+ */
+export async function updateImageStatus(id: number, status: ImageStatusValue): Promise<void> {
+  await db.update(images).set({ status }).where(eq(images.id, id));
+}
+
+/**
+ * Elimina el registro de una imagen. Sus anotaciones se borran en cascada
+ * (ver `onDelete: 'cascade'` en el schema).
+ */
+export async function deleteImageRow(id: number): Promise<void> {
+  await db.delete(images).where(eq(images.id, id));
 }
