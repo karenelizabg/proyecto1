@@ -1,12 +1,20 @@
 import {
+  type AnnotationWithCategory,
+  countAnnotationsByImage,
   createAnnotationRow,
   deleteAnnotationRow,
   findAnnotationById,
   findImageById,
   listAnnotationsByImage,
   updateAnnotationRow,
-  type AnnotationWithCategory,
+  updateImageStatus,
 } from '../data/index.js';
+import {
+  createAnnotationForImageSchema,
+  patchAnnotationSchema,
+  validateBboxWithBounds,
+} from './annotation.validation.js';
+import { NotFoundError, ValidationError } from './errors.js';
 
 export interface AnnotationBoxInput {
   categoryId: number;
@@ -17,46 +25,74 @@ export interface AnnotationBoxInput {
   iscrowd?: boolean;
 }
 
-function validateBox(box: Partial<AnnotationBoxInput>): void {
-  if (box.bboxX !== undefined && box.bboxX < 0) {
-    throw new Error('bboxX no puede ser negativo.');
-  }
-  if (box.bboxY !== undefined && box.bboxY < 0) {
-    throw new Error('bboxY no puede ser negativo.');
-  }
-  if (box.bboxWidth !== undefined && box.bboxWidth <= 0) {
-    throw new Error('bboxWidth debe ser positivo.');
-  }
-  if (box.bboxHeight !== undefined && box.bboxHeight <= 0) {
-    throw new Error('bboxHeight debe ser positivo.');
-  }
-}
-
 export async function getAnnotationsForImage(imageId: number): Promise<AnnotationWithCategory[]> {
+  const image = await findImageById(imageId);
+  if (!image) {
+    throw new NotFoundError('La imagen no existe.');
+  }
+
   return listAnnotationsByImage(imageId);
 }
 
+/**
+ * SPEC-ANNOT-001 / SPEC-VALID-001 — Crea una bounding box.
+ *
+ * Reglas aplicadas:
+ *  - El body se valida con Zod antes de tocar la base de datos.
+ *  - La imagen debe existir (aporta las dimensiones para validar límites).
+ *  - bboxX/bboxY >= 0 y bboxWidth/bboxHeight > 0.
+ *  - La caja no puede salirse del canvas de la imagen.
+ *  - El área se calcula en el backend: bboxWidth × bboxHeight.
+ *  - Al crear la primera caja, la imagen pasa de `pending` a `in_progress`.
+ */
 export async function createAnnotationForImage(
   imageId: number,
-  input: AnnotationBoxInput,
+  input: unknown,
 ): Promise<AnnotationWithCategory> {
-  validateBox(input);
+  const parsed = createAnnotationForImageSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new ValidationError(
+      parsed.error.issues[0]?.message ?? 'Los datos de la anotación son inválidos.',
+    );
+  }
+  const box = parsed.data;
 
   const image = await findImageById(imageId);
   if (!image) {
-    throw new Error('La imagen no existe.');
+    throw new NotFoundError('La imagen no existe.');
+  }
+
+  // La caja debe caber dentro de las dimensiones reales de la imagen.
+  const bounds = validateBboxWithBounds(
+    {
+      categoryId: box.categoryId,
+      bboxX: box.bboxX,
+      bboxY: box.bboxY,
+      bboxWidth: box.bboxWidth,
+      bboxHeight: box.bboxHeight,
+    },
+    image.width,
+    image.height,
+  );
+  if (!bounds.success) {
+    throw new ValidationError(bounds.error ?? 'La caja no cabe dentro de la imagen.');
   }
 
   const id = await createAnnotationRow({
     imageId,
-    categoryId: input.categoryId,
-    bboxX: input.bboxX,
-    bboxY: input.bboxY,
-    bboxWidth: input.bboxWidth,
-    bboxHeight: input.bboxHeight,
-    area: input.bboxWidth * input.bboxHeight,
-    isCrowd: input.iscrowd ?? false,
+    categoryId: box.categoryId,
+    bboxX: box.bboxX,
+    bboxY: box.bboxY,
+    bboxWidth: box.bboxWidth,
+    bboxHeight: box.bboxHeight,
+    area: box.bboxWidth * box.bboxHeight,
+    isCrowd: box.iscrowd ?? false,
   });
+
+  // Primera caja de la imagen: entra al flujo de anotación.
+  if (image.status === 'pending') {
+    await updateImageStatus(imageId, 'in_progress');
+  }
 
   const created = await findAnnotationById(id);
   if (!created) {
@@ -66,38 +102,80 @@ export async function createAnnotationForImage(
   return created;
 }
 
+/**
+ * Mueve, redimensiona o reclasifica una anotación. Acepta cambios parciales
+ * y revalida la caja resultante contra los límites de la imagen.
+ */
 export async function updateAnnotation(
   id: number,
-  changes: Partial<AnnotationBoxInput>,
+  changes: unknown,
 ): Promise<AnnotationWithCategory> {
-  validateBox(changes);
+  const parsed = patchAnnotationSchema.safeParse(changes);
+  if (!parsed.success) {
+    throw new ValidationError(
+      parsed.error.issues[0]?.message ?? 'Los datos de la anotación son inválidos.',
+    );
+  }
+  const patch = parsed.data;
 
   const existing = await findAnnotationById(id);
   if (!existing) {
-    throw new Error('La anotación no existe.');
+    throw new NotFoundError('La anotación no existe.');
   }
 
-  const nextWidth = changes.bboxWidth ?? existing.bboxWidth;
-  const nextHeight = changes.bboxHeight ?? existing.bboxHeight;
+  const image = await findImageById(existing.imageId);
+  if (!image) {
+    throw new NotFoundError('La imagen asociada a la anotación no existe.');
+  }
 
-  const row: Record<string, number | boolean> = { area: nextWidth * nextHeight };
-  if (changes.categoryId !== undefined) row.categoryId = changes.categoryId;
-  if (changes.bboxX !== undefined) row.bboxX = changes.bboxX;
-  if (changes.bboxY !== undefined) row.bboxY = changes.bboxY;
-  if (changes.bboxWidth !== undefined) row.bboxWidth = changes.bboxWidth;
-  if (changes.bboxHeight !== undefined) row.bboxHeight = changes.bboxHeight;
-  if (changes.iscrowd !== undefined) row.isCrowd = changes.iscrowd;
+  // Se combina lo recibido con lo ya guardado para validar la caja final.
+  const merged = {
+    categoryId: patch.categoryId ?? existing.categoryId,
+    bboxX: patch.bboxX ?? existing.bboxX,
+    bboxY: patch.bboxY ?? existing.bboxY,
+    bboxWidth: patch.bboxWidth ?? existing.bboxWidth,
+    bboxHeight: patch.bboxHeight ?? existing.bboxHeight,
+  };
+
+  const bounds = validateBboxWithBounds(merged, image.width, image.height);
+  if (!bounds.success) {
+    throw new ValidationError(bounds.error ?? 'La caja no cabe dentro de la imagen.');
+  }
+
+  // El área siempre la recalcula el backend a partir de la caja resultante.
+  const row: Record<string, number | boolean> = {
+    ...merged,
+    area: merged.bboxWidth * merged.bboxHeight,
+  };
+  if (patch.iscrowd !== undefined) row.isCrowd = patch.iscrowd;
 
   await updateAnnotationRow(id, row);
 
   const updated = await findAnnotationById(id);
   if (!updated) {
-    throw new Error('No se pudo leer la anotación actualizada.');
+    throw new NotFoundError('La anotación no existe.');
   }
 
   return updated;
 }
 
+/**
+ * Elimina una anotación. Si la imagen queda sin cajas, vuelve a `pending`
+ * para regresar a la cola de trabajo.
+ */
 export async function deleteAnnotation(id: number): Promise<void> {
+  const existing = await findAnnotationById(id);
+  if (!existing) {
+    throw new NotFoundError('La anotación no existe.');
+  }
+
   await deleteAnnotationRow(id);
+
+  const remaining = await countAnnotationsByImage(existing.imageId);
+  if (remaining === 0) {
+    const image = await findImageById(existing.imageId);
+    if (image && image.status !== 'pending') {
+      await updateImageStatus(existing.imageId, 'pending');
+    }
+  }
 }

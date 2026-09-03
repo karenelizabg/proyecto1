@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { annotations, categories, type NewAnnotation } from '../db/schema.js';
+import { type Annotation, annotations, categories, type NewAnnotation } from '../db/schema.js';
 
 /**
  * Forma de anotación enriquecida con un resumen de su categoría, tal como
@@ -89,4 +89,22 @@ export async function updateAnnotationRow(
  */
 export async function deleteAnnotationRow(id: number): Promise<void> {
   await db.delete(annotations).where(eq(annotations.id, id));
+}
+
+/**
+ * Cuenta las anotaciones de una imagen. Usado para la máquina de estados.
+ */
+export async function countAnnotationsByImage(imageId: number): Promise<number> {
+  const rows = await db
+    .select({ value: count() })
+    .from(annotations)
+    .where(eq(annotations.imageId, imageId));
+  return Number(rows[0]?.value ?? 0);
+}
+
+/**
+ * Devuelve todas las anotaciones del dataset (fila cruda). Usado por COCO.
+ */
+export async function findAllAnnotationRows(): Promise<Annotation[]> {
+  return db.select().from(annotations).orderBy(annotations.id);
 }
