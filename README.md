@@ -239,3 +239,48 @@ positivo o dejar de validar `imageId` hace fallar la suite.
 ## Fuera de alcance
 
 El entrenamiento del modelo y MLOps corresponden a una fase posterior.
+
+## Etapas del proyecto
+
+El proyecto se construyó por etapas, cada una sobre la anterior:
+
+| Etapa | Qué aportó                                                                 |
+|-------|----------------------------------------------------------------------------|
+| 1     | Esqueleto: TypeScript, Biome, arquitectura UI/Logic/Data, esquema Drizzle. |
+| 2     | Persistencia: MariaDB, MinIO, migraciones, upload de imágenes, seeder.     |
+| 3     | Frontend React: portal de anotación, canvas, dashboard y búsqueda.         |
+| 4     | Integración final: lógica de negocio, COCO, dashboard y validación Zod.    |
+
+### Qué agrega la etapa final (integración)
+
+Esta etapa conecta el frontend con el backend y completa lo que faltaba para
+que el portal funcione de punta a punta:
+
+- **Exportación COCO** (`GET /export/coco`): documento JSON descargable con
+  `images`, `annotations` y `categories`, con ids consistentes entre
+  secciones (SPEC-COCO-001).
+- **Métricas del dashboard** (`GET /dashboard/summary`): totales, objetos por
+  clase y progreso de anotación, todo calculado en SQL (SPEC-DASH-001).
+- **Búsqueda por clases con operadores** en `GET /images/search`: `AND` / `OR`
+  resueltos con subconsultas `EXISTS` en SQL, más filtros por categoría,
+  estado y rango de fechas (SPEC-SEARCH-001).
+- **Validación de la frontera HTTP con Zod**: todo body, query param y route
+  param se valida antes de llegar a la base de datos, con errores tipados que
+  la UI mapea a códigos HTTP (SPEC-VALID-001).
+- **Reglas de anotación**: la caja debe caber dentro de la imagen, el área la
+  calcula el backend, y una imagen sin cajas no puede quedar como completada
+  (SPEC-ANNOT-001).
+
+### Notas de puesta en marcha
+
+- Usa `npm install` la primera vez en cada paquete (`backend/` y `frontend/`).
+  `node_modules` no se versiona: se reconstruye desde `package-lock.json`.
+- El backend valida sus variables de entorno al arrancar (fail-fast con Zod).
+  Si falta el `.env` o alguna variable, el proceso termina indicando cuáles
+  faltan; copia `.env.example` a `.env` antes de arrancar.
+- Si publicaste MariaDB en un puerto distinto al 3306 (por ejemplo 3307
+  porque el 3306 ya estaba ocupado), ajusta `DATABASE_URL` en `backend/.env`
+  para que coincida.
+- El frontend habla con el backend a través del proxy `/api` de Vite en
+  desarrollo. `VITE_API_BASE_URL` puede dejarse en `/api`; en producción se
+  apunta a la URL real del backend.
