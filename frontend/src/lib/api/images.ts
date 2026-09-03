@@ -96,6 +96,20 @@ export function getImageFileUrl(imageId: number): string {
 }
 
 /**
+ * Resuelve una ruta relativa del backend (por ejemplo el `thumbnailUrl` que
+ * viene en las respuestas, `/images/:id/file`) contra la base del API.
+ *
+ * El backend devuelve rutas canónicas sin el prefijo del proxy; el frontend
+ * es quien sabe que en desarrollo el backend vive detrás de `/api`. Si la
+ * URL ya es absoluta (http...) se devuelve tal cual.
+ */
+export function resolveBackendUrl(path: string): string {
+  if (/^https?:\/\//.test(path)) return path;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalized}`;
+}
+
+/**
  * Carga las dimensiones reales de una imagen pidiéndole al navegador que la
  * descargue (usa naturalWidth/naturalHeight). Esto NO depende de ningún
  * endpoint adicional: usa exactamente `GET /images/:id/file`, que ya está

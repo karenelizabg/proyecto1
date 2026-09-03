@@ -1,3 +1,4 @@
+import { resolveBackendUrl } from '../../lib/api/images';
 import type { RecentUpload } from '../../types/dashboard';
 
 type RecentUploadsProps = {
@@ -28,7 +29,7 @@ export function RecentUploads({ uploads }: RecentUploadsProps) {
           return (
             <div key={upload.id} className="relative shrink-0">
               <img
-                src={upload.thumbnailUrl}
+                src={resolveBackendUrl(upload.thumbnailUrl)}
                 alt={`Fotografía ${upload.id} — ${config.label}`}
                 className="h-20 w-20 rounded-xl border border-border object-cover"
               />
