@@ -5,8 +5,15 @@ import { z } from "zod";
  * Todo pasa por HTTP contra el backend.
  */
 
+/**
+ * Si la variable no está definida o viene vacía, se usa el proxy `/api`
+ * declarado en vite.config.ts, que reenvía al backend. Una cadena vacía no
+ * activa `??`, por eso se comprueba explícitamente.
+ */
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+
 export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+  configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== "" ? configuredBaseUrl : "/api";
 
 export class ApiError extends Error {
   constructor(
@@ -18,16 +25,21 @@ export class ApiError extends Error {
   }
 }
 
-/** Intenta leer `{ message: string }` de un body de error ya parseado como JSON. */
+/**
+ * Extrae el mensaje de un body de error ya parseado como JSON.
+ *
+ * El backend responde `{ "error": "..." }`, y algunos endpoints usan
+ * `{ "message": "..." }`, así que se aceptan ambas claves para que el usuario
+ * vea siempre el motivo real en lugar de un mensaje genérico.
+ */
 export function extractMessageField(body: unknown): string | null {
-  if (
-    body !== null &&
-    typeof body === "object" &&
-    "message" in body &&
-    typeof (body as Record<string, unknown>).message === "string"
-  ) {
-    return (body as Record<string, string>).message;
-  }
+  if (body === null || typeof body !== "object") return null;
+
+  const candidate = body as { error?: unknown; message?: unknown };
+
+  if (typeof candidate.error === "string") return candidate.error;
+  if (typeof candidate.message === "string") return candidate.message;
+
   return null;
 }
 
