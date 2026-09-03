@@ -27,7 +27,7 @@ export function UploadFeedbackList({
       {items.map((item) => (
         <li
           key={item.clientId}
-          className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm"
+          className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2 shadow-card"
         >
           <img
             src={item.previewUrl}
@@ -35,12 +35,12 @@ export function UploadFeedbackList({
             className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-neutral-800">{item.file.name}</p>
+            <p className="truncate text-sm font-medium text-ink">{item.file.name}</p>
             <div className="mt-1 flex items-center gap-2">
               {item.status === "uploading" && (
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-sidebar">
                   <div
-                    className="h-full rounded-full bg-indigo-500 transition-all"
+                    className="h-full rounded-full bg-accent-lilac transition-all"
                     style={{ width: `${item.progress}%` }}
                   />
                 </div>
@@ -50,8 +50,8 @@ export function UploadFeedbackList({
                   item.status === "error" || item.status === "invalid"
                     ? "text-red-600"
                     : item.status === "success"
-                      ? "text-emerald-600"
-                      : "text-neutral-400"
+                      ? "text-status-done"
+                      : "text-ink-faint"
                 }`}
               >
                 {statusLabel(item)}
@@ -62,7 +62,7 @@ export function UploadFeedbackList({
             <button
               type="button"
               onClick={() => onRetry(item.clientId)}
-              className="flex-shrink-0 rounded-lg border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
+              className="flex-shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-medium text-ink-muted transition-colors hover:bg-sidebar"
             >
               Reintentar
             </button>

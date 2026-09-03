@@ -31,3 +31,10 @@ export async function uploadImageObject(
 export async function deleteImageObject(storageKey: string): Promise<void> {
   await minioClient.removeObject(minioBucket, storageKey);
 }
+
+/**
+ * Obtiene un stream de lectura del archivo guardado en MinIO.
+ */
+export async function getImageObjectStream(storageKey: string) {
+  return minioClient.getObject(minioBucket, storageKey);
+}

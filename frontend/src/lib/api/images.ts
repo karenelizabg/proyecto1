@@ -13,9 +13,14 @@ import { API_BASE_URL, ApiError, apiRequest, apiRequestVoid, extractMessageField
 export const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MiB
 
+/**
+ * Imágenes que todavía necesitan anotarse: incluye "pending" y también
+ * "in_progress" (una imagen con borrador guardado no debe desaparecer de
+ * la cola hasta que se marque como completada).
+ */
 export function searchPendingImages(page = 1, pageSize = 50): Promise<ImageSearchResponse> {
   const params = new URLSearchParams({
-    status: "pending",
+    status: "pending,in_progress",
     page: String(page),
     pageSize: String(pageSize),
   });
@@ -125,6 +130,10 @@ export function patchImageStatus(
     method: "PATCH",
     ...jsonBody(body),
   });
+}
+
+export function deleteImage(imageId: number): Promise<void> {
+  return apiRequestVoid(`/images/${imageId}`, { method: "DELETE" });
 }
 
 /** Validación de cliente: no reemplaza la del backend, es feedback inmediato. */

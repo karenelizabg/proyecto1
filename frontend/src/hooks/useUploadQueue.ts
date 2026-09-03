@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { searchPendingImages, uploadImage, validateImageFile } from "../lib/api/images";
-import type { ImageRecord } from "../types/schemas";
+import { deleteImage, searchPendingImages, uploadImage, validateImageFile } from "../lib/api/images";
+import type { ImageRecord, ImageStatus } from "../types/schemas";
 
 export type UploadStatus = "invalid" | "uploading" | "success" | "error";
 
@@ -19,6 +19,7 @@ export interface PendingEntry {
   id: number;
   filename: string;
   previewUrl: string | null;
+  status: ImageStatus;
 }
 
 function makeClientId(): string {
@@ -127,14 +128,43 @@ export function useUploadQueue(showToast: (message: string, variant?: "error" | 
   const freshEntries: PendingEntry[] = [];
   for (const item of uploadItems) {
     if (item.status === "success" && item.imageId !== undefined && !seenIds.has(item.imageId)) {
-      freshEntries.push({ id: item.imageId, filename: item.file.name, previewUrl: item.previewUrl });
+      freshEntries.push({
+        id: item.imageId,
+        filename: item.file.name,
+        previewUrl: item.previewUrl,
+        status: "pending",
+      });
     }
   }
 
   const pendingEntries: PendingEntry[] = [
     ...freshEntries,
-    ...serverPending.map((img) => ({ id: img.id, filename: img.filename, previewUrl: null })),
+    ...serverPending.map((img) => ({
+      id: img.id,
+      filename: img.filename,
+      previewUrl: null,
+      status: img.status,
+    })),
   ];
+
+  const deleteEntry = useCallback(
+    async (id: number) => {
+      try {
+        await deleteImage(id);
+        setServerPending((prev) => prev.filter((img) => img.id !== id));
+        setUploadItems((prev) => prev.filter((item) => item.imageId !== id));
+        setSelectedIds((prev) => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "No se pudo eliminar la imagen.", "error");
+      }
+    },
+    [showToast]
+  );
 
   return {
     uploadItems,
@@ -145,6 +175,7 @@ export function useUploadQueue(showToast: (message: string, variant?: "error" | 
     addFiles,
     retryUpload,
     toggleSelect,
+    deleteEntry,
     reloadPending: loadServerPending,
   };
 }

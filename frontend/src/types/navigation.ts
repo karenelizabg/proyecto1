@@ -10,4 +10,6 @@ import type { ImageStatus } from "./schemas";
 export interface AnnotateNavigationState {
   filenames?: Record<number, string>;
   statuses?: Record<number, ImageStatus>;
+  /** Pantalla desde la que se navegó, para que "Volver" regrese al mismo lugar. */
+  from?: "upload" | "search";
 }

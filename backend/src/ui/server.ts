@@ -1,7 +1,20 @@
 import express from 'express';
 import multer from 'multer';
 import { env } from '../config/env.js';
-import { checkHealth, initializeApplication, searchImages, uploadImage } from '../logic/index.js';
+import {
+  checkHealth,
+  createAnnotationForImage,
+  deleteAnnotation,
+  deleteImage,
+  getAnnotationsForImage,
+  getCategories,
+  getImageFile,
+  initializeApplication,
+  searchImages,
+  setImageStatus,
+  updateAnnotation,
+  uploadImage,
+} from '../logic/index.js';
 
 const IMAGE_STATUS_VALUES = ['pending', 'in_progress', 'completed'] as const;
 type ImageStatusParam = (typeof IMAGE_STATUS_VALUES)[number];
@@ -18,6 +31,8 @@ function isImageStatus(value: unknown): value is ImageStatusParam {
  */
 const app = express();
 const port = env.PORT;
+
+app.use(express.json());
 
 /**
  * Multer mantiene temporalmente la imagen en memoria.
@@ -63,10 +78,10 @@ app.post('/images', upload.single('image'), async (req, res) => {
       buffer: req.file.buffer,
     });
 
-    res.status(201).json({
-      message: 'Imagen cargada correctamente.',
-      image,
-    });
+    // El body va plano (sin wrapper), así coincide con el contrato que
+    // espera el frontend (imageUploadResponseSchema): id, filename,
+    // storageKey, width, height directamente en la raíz.
+    res.status(201).json(image);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Error desconocido al cargar la imagen.';
@@ -81,9 +96,14 @@ app.post('/images', upload.single('image'), async (req, res) => {
  * Busca imágenes paginadas, opcionalmente filtradas por status.
  */
 app.get('/images/search', async (req, res) => {
-  const statusParam = req.query.status;
+  // Acepta uno o varios status separados por coma, p. ej.
+  // "?status=pending,in_progress" (usado por la cola de "pendientes por
+  // anotar", que debe seguir mostrando una imagen mientras no esté
+  // completada, no solo mientras está "pending").
+  const rawStatus = req.query.status;
+  const statusValues = rawStatus === undefined ? [] : String(rawStatus).split(',');
 
-  if (statusParam !== undefined && !isImageStatus(statusParam)) {
+  if (statusValues.some((value) => !isImageStatus(value))) {
     res.status(400).json({
       error: 'El parámetro status debe ser "pending", "in_progress" o "completed".',
     });
@@ -97,12 +117,141 @@ app.get('/images/search', async (req, res) => {
   );
 
   const result = await searchImages({
-    status: statusParam,
+    status: statusValues.length > 0 ? (statusValues as ImageStatusParam[]) : undefined,
     page,
     pageSize,
   });
 
   res.status(200).json(result);
+});
+
+/**
+ * Elimina una imagen (registro + archivo en MinIO + sus anotaciones).
+ */
+app.delete('/images/:imageId', async (req, res) => {
+  const imageId = Number.parseInt(req.params.imageId, 10);
+  if (Number.isNaN(imageId)) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
+    return;
+  }
+
+  try {
+    await deleteImage(imageId);
+    res.status(204).end();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo eliminar la imagen.';
+    res.status(404).json({ error: message });
+  }
+});
+
+/**
+ * Sirve el binario de una imagen desde MinIO.
+ */
+app.get('/images/:imageId/file', async (req, res) => {
+  const imageId = Number.parseInt(req.params.imageId, 10);
+  if (Number.isNaN(imageId)) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
+    return;
+  }
+
+  const file = await getImageFile(imageId);
+  if (!file) {
+    res.status(404).json({ error: 'Imagen no encontrada.' });
+    return;
+  }
+
+  res.setHeader('Content-Type', file.mimeType);
+  file.stream.on('error', () => res.destroy());
+  file.stream.pipe(res);
+});
+
+/**
+ * Cambia el status de una imagen.
+ */
+app.patch('/images/:imageId/status', async (req, res) => {
+  const imageId = Number.parseInt(req.params.imageId, 10);
+  const status = req.body?.status;
+
+  if (Number.isNaN(imageId) || (status !== 'in_progress' && status !== 'completed')) {
+    res.status(400).json({ error: 'Solicitud inválida.' });
+    return;
+  }
+
+  try {
+    await setImageStatus(imageId, status);
+    res.status(204).end();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al actualizar el status.';
+    res.status(400).json({ error: message });
+  }
+});
+
+/**
+ * Lista/crea anotaciones de una imagen.
+ */
+app.get('/images/:imageId/annotations', async (req, res) => {
+  const imageId = Number.parseInt(req.params.imageId, 10);
+  if (Number.isNaN(imageId)) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
+    return;
+  }
+
+  const annotations = await getAnnotationsForImage(imageId);
+  res.status(200).json(annotations);
+});
+
+app.post('/images/:imageId/annotations', async (req, res) => {
+  const imageId = Number.parseInt(req.params.imageId, 10);
+  if (Number.isNaN(imageId)) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
+    return;
+  }
+
+  try {
+    const created = await createAnnotationForImage(imageId, req.body);
+    res.status(201).json(created);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo crear la anotación.';
+    res.status(400).json({ error: message });
+  }
+});
+
+/**
+ * Actualiza o elimina una anotación existente.
+ */
+app.patch('/annotations/:annotationId', async (req, res) => {
+  const annotationId = Number.parseInt(req.params.annotationId, 10);
+  if (Number.isNaN(annotationId)) {
+    res.status(400).json({ error: 'ID de anotación inválido.' });
+    return;
+  }
+
+  try {
+    const updated = await updateAnnotation(annotationId, req.body);
+    res.status(200).json(updated);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo actualizar la anotación.';
+    res.status(400).json({ error: message });
+  }
+});
+
+app.delete('/annotations/:annotationId', async (req, res) => {
+  const annotationId = Number.parseInt(req.params.annotationId, 10);
+  if (Number.isNaN(annotationId)) {
+    res.status(400).json({ error: 'ID de anotación inválido.' });
+    return;
+  }
+
+  await deleteAnnotation(annotationId);
+  res.status(204).end();
+});
+
+/**
+ * Lista las categorías disponibles.
+ */
+app.get('/categories', async (_req, res) => {
+  const categories = await getCategories();
+  res.status(200).json(categories);
 });
 
 /**

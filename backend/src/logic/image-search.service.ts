@@ -2,7 +2,7 @@ import { findImages } from '../data/index.js';
 import type { Image } from '../data/index.js';
 
 export interface SearchImagesInput {
-  status?: Image['status'];
+  status?: Image['status'] | Image['status'][];
   page: number;
   pageSize: number;
 }

@@ -3,7 +3,14 @@ import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 
 import { env } from '../config/env.js';
-import { createImageMetadata, deleteImageObject, uploadImageObject } from '../data/index.js';
+import {
+  createImageMetadata,
+  deleteImageObject,
+  deleteImageRow,
+  findImageById,
+  uploadImageObject,
+} from '../data/index.js';
+
 import { validateImageUpload } from './image-upload.validation.js';
 
 export interface UploadImageInput {
@@ -76,3 +83,18 @@ export async function uploadImage(input: UploadImageInput): Promise<UploadImageR
     throw error;
   }
 }
+
+/**
+ * Borra una imagen: su registro en MariaDB (con sus anotaciones, en
+ * cascada) y su archivo real en MinIO.
+ */
+export async function deleteImage(imageId: number): Promise<void> {
+  const image = await findImageById(imageId);
+  if (!image) {
+    throw new Error('La imagen no existe.');
+  }
+
+  await deleteImageRow(imageId);
+  await deleteImageObject(image.storageKey);
+}
+

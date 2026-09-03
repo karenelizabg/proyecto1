@@ -60,7 +60,7 @@ export function FilterChips({ filters, categories, onChange }: FilterChipsProps)
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {chips.map((chip) => (
         <span
           key={chip.key}
@@ -77,6 +77,15 @@ export function FilterChips({ filters, categories, onChange }: FilterChipsProps)
           </button>
         </span>
       ))}
+      {chips.length > 1 && (
+        <button
+          type="button"
+          onClick={() => onChange({ q: "", categoryIds: [], statuses: [], dateFrom: "", dateTo: "", page: 1 })}
+          className="text-xs font-medium text-ink-faint underline-offset-2 hover:text-ink-muted hover:underline"
+        >
+          Limpiar todo
+        </button>
+      )}
     </div>
   );
 }

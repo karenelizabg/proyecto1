@@ -68,7 +68,7 @@ export function BoundingBox({
                 e.stopPropagation();
                 onStartResize(corner, e);
               }}
-              className={`absolute h-3 w-3 rounded-sm border border-white bg-neutral-800 ${className}`}
+              className={`absolute h-3 w-3 rounded-sm border border-white bg-ink ${className}`}
             />
           ))}
           <button
@@ -79,7 +79,7 @@ export function BoundingBox({
               e.stopPropagation();
               onDelete();
             }}
-            className="absolute -right-3 -top-3 flex h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-red-50 hover:text-red-600"
+            className="absolute -right-3 -top-3 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-ink-muted shadow-sm transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
               <path

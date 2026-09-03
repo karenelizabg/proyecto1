@@ -2,8 +2,8 @@ import type { Toast } from "../../hooks/useToasts";
 
 const VARIANT_STYLES: Record<Toast["variant"], string> = {
   error: "border-red-200 bg-red-50 text-red-800",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  info: "border-neutral-200 bg-white text-neutral-800",
+  success: "border-status-done-soft bg-status-done-soft text-status-done",
+  info: "border-border bg-surface text-ink",
 };
 
 export function ToastStack({
@@ -27,7 +27,7 @@ export function ToastStack({
           <button
             type="button"
             onClick={() => onDismiss(toast.id)}
-            className="text-neutral-400 hover:text-neutral-600"
+            className="text-ink-faint transition-colors hover:text-ink-muted"
             aria-label="Cerrar notificación"
           >
             ×

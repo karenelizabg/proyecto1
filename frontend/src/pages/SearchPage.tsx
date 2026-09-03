@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useImageSearch } from "@/hooks/useImageSearch";
 import { filtersFromSearchParams, filtersToSearchParams, hasActiveFilters, type SearchFilters } from "@/lib/searchFilters";
-import { Sidebar } from "@/components/search/Sidebar";
+import { FiltersSidebar } from "@/components/search/FiltersSidebar";
 import { SearchBar } from "@/components/search/SearchBar";
 import { FilterChips } from "@/components/search/FilterChips";
 import { ResultsGrid } from "@/components/search/ResultsGrid";
@@ -22,8 +22,8 @@ export function SearchPage(): JSX.Element {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas sm:flex-row">
-      <Sidebar
+    <div className="flex flex-1 flex-col lg:flex-row">
+      <FiltersSidebar
         filters={filters}
         categories={categories}
         categoriesLoading={categoriesLoading}
@@ -32,10 +32,10 @@ export function SearchPage(): JSX.Element {
         onChangeFilters={applyFilters}
       />
 
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-6 py-8 lg:px-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-5">
           <header className="flex flex-col gap-3">
-            <h1 className="text-lg font-semibold text-ink">Buscar imágenes</h1>
+            <h1 className="text-xl font-semibold text-ink">Buscar fotografías</h1>
             <SearchBar initialValue={filters.q} onSearch={(q) => applyFilters({ q, page: 1 })} />
             <FilterChips filters={filters} categories={categories} onChange={applyFilters} />
           </header>
