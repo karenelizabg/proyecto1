@@ -3,7 +3,7 @@ import type { Annotation } from "../../types/schemas";
 
 export type Corner = "nw" | "ne" | "sw" | "se";
 
-const CORNERS: { corner: Corner; className: string }[] = [
+export const CORNERS: { corner: Corner; className: string }[] = [
   { corner: "nw", className: "-left-1.5 -top-1.5 cursor-nwse-resize" },
   { corner: "ne", className: "-right-1.5 -top-1.5 cursor-nesw-resize" },
   { corner: "sw", className: "-left-1.5 -bottom-1.5 cursor-nesw-resize" },
@@ -38,6 +38,13 @@ export function BoundingBox({
       aria-label={`Caja de ${annotation.category.name}`}
       onPointerDown={(e) => {
         e.stopPropagation();
+        e.preventDefault();
+        // Sin esto, Safari a veces no sigue enviando pointermove/pointerup
+        // a los listeners de window una vez que el puntero se mueve fuera
+        // del elemento que originó el pointerdown (a diferencia de Chrome/
+        // Firefox, que sí los entregan sin capture explícito): la caja
+        // quedaba "atascada" y no se podía mover ni redimensionar.
+        e.currentTarget.setPointerCapture(e.pointerId);
         onSelect();
         onStartMove(e);
       }}
@@ -66,6 +73,8 @@ export function BoundingBox({
               key={corner}
               onPointerDown={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
                 onStartResize(corner, e);
               }}
               className={`absolute h-3 w-3 rounded-sm border border-white bg-ink ${className}`}

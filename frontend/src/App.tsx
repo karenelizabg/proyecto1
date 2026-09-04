@@ -17,14 +17,10 @@ export function App(): JSX.Element {
           </AppLayout>
         }
       />
-      <Route
-        path="/search"
-        element={
-          <AppLayout>
-            <SearchPage />
-          </AppLayout>
-        }
-      />
+      {/* SearchPage se envuelve con AppLayout internamente (no aquí), porque
+          necesita pasarle su propio contenido de filtros como sidebarExtra
+          — ver SearchPage.tsx. */}
+      <Route path="/search" element={<SearchPage />} />
       <Route
         path="/upload"
         element={

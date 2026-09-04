@@ -1,6 +1,6 @@
 import { LayoutDashboard, Search, Upload } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import type { ComponentType, SVGProps } from "react";
+import type { ComponentType, ReactNode, SVGProps } from "react";
 
 interface NavItem {
   label: string;
@@ -20,10 +20,14 @@ const NAV_ITEMS: NavItem[] = [
  * NO la usa a propósito — es un modo de enfoque de pantalla completa, con su
  * propio botón "Volver" hacia la pantalla de origen (mismo patrón que
  * Figma/Canva al editar).
+ *
+ * `children` es contenido específico de la pantalla (p. ej. los filtros de
+ * Búsqueda) que se renderiza dentro de este mismo sidebar, debajo del nav,
+ * en vez de vivir en un segundo `<aside>` aparte.
  */
-export function GlobalNav() {
+export function GlobalNav({ children }: { children?: ReactNode }) {
   return (
-    <aside className="flex w-full shrink-0 flex-col border-b border-border bg-sidebar lg:h-screen lg:w-56 lg:border-b-0 lg:border-r">
+    <aside className="flex w-full shrink-0 flex-col border-b border-border bg-sidebar lg:h-screen lg:w-64 lg:overflow-y-auto lg:border-b-0 lg:border-r">
       <div className="flex items-center gap-2 px-5 py-5">
         <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent-lilac" aria-hidden />
         <span className="truncate text-sm font-semibold text-ink">Portal de Anotación</span>
@@ -50,6 +54,8 @@ export function GlobalNav() {
           );
         })}
       </nav>
+
+      {children && <div className="border-t border-border px-5 py-5">{children}</div>}
     </aside>
   );
 }

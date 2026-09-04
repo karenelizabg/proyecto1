@@ -12,8 +12,9 @@ interface FiltersSidebarProps {
 }
 
 /**
- * Panel de filtros de Búsqueda. Es específico de esta página (no es
- * navegación global — esa vive en GlobalNav/AppLayout).
+ * Panel de filtros de Búsqueda. Es específico de esta página, pero vive
+ * dentro del sidebar global (GlobalNav/AppLayout, vía `sidebarExtra`) en vez
+ * de tener su propio `<aside>` al lado.
  */
 export function FiltersSidebar({
   filters,
@@ -24,7 +25,7 @@ export function FiltersSidebar({
   onChangeFilters,
 }: FiltersSidebarProps): JSX.Element {
   return (
-    <aside className="w-full shrink-0 border-b border-border bg-surface px-5 py-6 lg:h-screen lg:w-64 lg:overflow-y-auto lg:border-b-0 lg:border-r">
+    <div>
       <h2 className="mb-4 text-sm font-semibold text-ink">Filtros</h2>
       <FiltersPanel
         filters={filters}
@@ -34,6 +35,6 @@ export function FiltersSidebar({
         onRetryCategories={onRetryCategories}
         onChange={onChangeFilters}
       />
-    </aside>
+    </div>
   );
 }

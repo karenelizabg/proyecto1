@@ -10,6 +10,9 @@ interface ResultsGridProps {
   error: string | null;
   hasActiveFilters: boolean;
   onRetry: () => void;
+  onImageClick: (index: number) => void;
+  selectedIds: Set<number>;
+  onToggleSelect: (id: number) => void;
 }
 
 const SKELETON_COUNT = 10;
@@ -20,6 +23,9 @@ export function ResultsGrid({
   error,
   hasActiveFilters,
   onRetry,
+  onImageClick,
+  selectedIds,
+  onToggleSelect,
 }: ResultsGridProps): JSX.Element {
   if (error) {
     return <ErrorState message={error} onRetry={onRetry} />;
@@ -41,8 +47,14 @@ export function ResultsGrid({
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {images.map((image) => (
-        <ImageCard key={image.id} image={image} />
+      {images.map((image, index) => (
+        <ImageCard
+          key={image.id}
+          image={image}
+          isSelected={selectedIds.has(image.id)}
+          onClick={() => onImageClick(index)}
+          onToggleSelect={() => onToggleSelect(image.id)}
+        />
       ))}
     </div>
   );

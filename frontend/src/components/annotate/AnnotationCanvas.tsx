@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
-import { BoundingBox, type Corner } from "./BoundingBox";
+import { BoundingBox, CORNERS, type Corner } from "./BoundingBox";
 import { CategoryPopover } from "./CategoryPopover";
 import { clampBBox, clientToImageCoords, MIN_BOX_SIZE_PX } from "../../lib/geometry";
 import type { Annotation, BBox, Category } from "../../types/schemas";
@@ -33,6 +33,16 @@ interface DragStateResize {
 }
 
 type DragState = DragStateMove | DragStateResize;
+
+/** Mover/redimensionar la caja pendiente (dibujada, aún sin categoría/ID). Es
+ * puro estado local: no hay nada que persistir hasta que se confirme. */
+interface PendingDragState {
+  mode: "move" | "resize";
+  corner?: Corner;
+  original: BBox;
+  pointerStartX: number;
+  pointerStartY: number;
+}
 
 interface AnnotationCanvasProps {
   imageUrl: string;
@@ -116,6 +126,16 @@ export function AnnotationCanvas({
   const [pendingBox, setPendingBox] = useState<PendingBox | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [draftOverride, setDraftOverride] = useState<{ id: number; bbox: BBox } | null>(null);
+  const [pendingDragState, setPendingDragState] = useState<PendingDragState | null>(null);
+
+  // --- DEBUG TEMPORAL: quitar una vez encontrado el bug de mover/redimensionar ---
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [debugMove, setDebugMove] = useState<string>("(sin pointermove aún)");
+  const logEvent = useCallback((msg: string) => {
+    const t = new Date().toISOString().slice(11, 23);
+    setDebugLog((prev) => [...prev.slice(-9), `${t} ${msg}`]);
+  }, []);
+  // --- fin debug ---
 
   const getRect = useCallback(() => containerRef.current?.getBoundingClientRect() ?? null, []);
 
@@ -127,11 +147,16 @@ export function AnnotationCanvas({
       // click fue sobre el lienzo vacío (la <img> tiene pointer-events: none).
       const rect = getRect();
       if (!rect) return;
+      // Ver el comentario equivalente en BoundingBox: sin esto, Safari puede
+      // dejar de entregar pointermove/pointerup a los listeners de window
+      // en medio del trazo.
+      event.currentTarget.setPointerCapture(event.pointerId);
       const { x, y } = clientToImageCoords(event.clientX, event.clientY, rect, displayScale);
       onSelect(null);
       setDrawState({ startX: x, startY: y, currentX: x, currentY: y });
+      logEvent(`canvas pointerdown (dibujar) x=${x.toFixed(0)} y=${y.toFixed(0)}`);
     },
-    [displayScale, getRect, onSelect]
+    [displayScale, getRect, onSelect, logEvent]
   );
 
   useEffect(() => {
@@ -167,6 +192,54 @@ export function AnnotationCanvas({
     };
   }, [drawState, displayScale, getRect, imageWidth, imageHeight]);
 
+  // --- Mover / redimensionar caja pendiente (antes de confirmar categoría) --
+  const startPendingMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pendingBox) return;
+    setPendingDragState({
+      mode: "move",
+      original: pendingBox.bbox,
+      pointerStartX: event.clientX,
+      pointerStartY: event.clientY,
+    });
+  }, [pendingBox]);
+
+  const startPendingResize = useCallback(
+    (corner: Corner, event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!pendingBox) return;
+      setPendingDragState({
+        mode: "resize",
+        corner,
+        original: pendingBox.bbox,
+        pointerStartX: event.clientX,
+        pointerStartY: event.clientY,
+      });
+    },
+    [pendingBox]
+  );
+
+  useEffect(() => {
+    if (!pendingDragState) return;
+
+    const handleMove = (event: PointerEvent) => {
+      const dx = (event.clientX - pendingDragState.pointerStartX) / displayScale;
+      const dy = (event.clientY - pendingDragState.pointerStartY) / displayScale;
+      const next =
+        pendingDragState.mode === "move"
+          ? applyMove(pendingDragState.original, dx, dy, imageWidth, imageHeight)
+          : applyResize(pendingDragState.original, pendingDragState.corner!, dx, dy, imageWidth, imageHeight);
+      setPendingBox({ bbox: next });
+    };
+
+    const handleUp = () => setPendingDragState(null);
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [pendingDragState, displayScale, imageWidth, imageHeight]);
+
   // --- Mover / redimensionar caja existente ------------------------------
   const startMove = useCallback(
     (annotation: Annotation, event: ReactPointerEvent<HTMLDivElement>) => {
@@ -182,8 +255,9 @@ export function AnnotationCanvas({
         pointerStartX: event.clientX,
         pointerStartY: event.clientY,
       });
+      logEvent(`startMove ann=${annotation.id} clientX=${event.clientX} clientY=${event.clientY}`);
     },
-    []
+    [logEvent]
   );
 
   const startResize = useCallback(
@@ -201,12 +275,15 @@ export function AnnotationCanvas({
         pointerStartX: event.clientX,
         pointerStartY: event.clientY,
       });
+      logEvent(`startResize ann=${annotation.id} corner=${corner}`);
     },
-    []
+    [logEvent]
   );
 
   useEffect(() => {
     if (!dragState) return;
+
+    logEvent(`drag effect montado: mode=${dragState.mode} ann=${dragState.annotationId}`);
 
     const handleMove = (event: PointerEvent) => {
       const dx = (event.clientX - dragState.pointerStartX) / displayScale;
@@ -216,6 +293,7 @@ export function AnnotationCanvas({
           ? applyMove(dragState.original, dx, dy, imageWidth, imageHeight)
           : applyResize(dragState.original, dragState.corner, dx, dy, imageWidth, imageHeight);
       setDraftOverride({ id: dragState.annotationId, bbox: next });
+      setDebugMove(`pointermove dx=${dx.toFixed(1)} dy=${dy.toFixed(1)} -> x=${next.bboxX.toFixed(0)} y=${next.bboxY.toFixed(0)} w=${next.bboxWidth.toFixed(0)} h=${next.bboxHeight.toFixed(0)}`);
     };
 
     const handleUp = (event: PointerEvent) => {
@@ -227,6 +305,7 @@ export function AnnotationCanvas({
           : applyResize(dragState.original, dragState.corner, dx, dy, imageWidth, imageHeight);
       setDragState(null);
       setDraftOverride(null);
+      logEvent(`handleUp -> commit ann=${dragState.annotationId} final x=${final.bboxX.toFixed(0)} y=${final.bboxY.toFixed(0)}`);
       void onCommitChange(dragState.annotationId, dragState.original, final);
     };
 
@@ -236,7 +315,7 @@ export function AnnotationCanvas({
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
-  }, [dragState, displayScale, imageWidth, imageHeight, onCommitChange]);
+  }, [dragState, displayScale, imageWidth, imageHeight, onCommitChange, logEvent]);
 
   // --- Borrar con teclado -------------------------------------------------
   useEffect(() => {
@@ -321,19 +400,41 @@ export function AnnotationCanvas({
         )}
 
         {/* Caja ya soltada, en espera de que se elija su categoría. Debe
-            seguir visible mientras el popover está abierto — antes solo se
-            usaba para calcular la posición del popover y desaparecía al
-            soltar el mouse. */}
+            seguir visible mientras el popover está abierto — y, como una caja
+            ya confirmada, se puede mover/redimensionar antes de confirmar
+            (útil para ajustarla mientras se elige la categoría). */}
         {pendingBox && (
           <div
-            className="pointer-events-none absolute animate-pulse rounded-sm border-2 border-dashed border-accent-lilac bg-accent-lilac/10"
+            role="button"
+            tabIndex={0}
+            aria-label="Caja pendiente de categoría"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              startPendingMove(e);
+            }}
+            className="absolute cursor-move rounded-sm border-2 border-dashed border-accent-lilac bg-accent-lilac/10"
             style={{
               left: pendingBox.bbox.bboxX * displayScale,
               top: pendingBox.bbox.bboxY * displayScale,
               width: pendingBox.bbox.bboxWidth * displayScale,
               height: pendingBox.bbox.bboxHeight * displayScale,
             }}
-          />
+          >
+            {CORNERS.map(({ corner, className }) => (
+              <div
+                key={corner}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  startPendingResize(corner, e);
+                }}
+                className={`absolute h-3 w-3 rounded-sm border border-white bg-accent-lilac ${className}`}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -349,11 +450,26 @@ export function AnnotationCanvas({
           }}
           onCancel={() => setPendingBox(null)}
           onConfirm={(categoryId) => {
-            void onCreateBox(categoryId, pendingBox.bbox);
+            // Selecciona la caja recién creada de inmediato: así quedan
+            // visibles sus manijas de resize sin necesitar un clic extra.
+            void onCreateBox(categoryId, pendingBox.bbox).then((created) => {
+              if (created) onSelect(created.id);
+            });
             setPendingBox(null);
           }}
         />
       )}
+
+      {/* DEBUG TEMPORAL: quitar una vez encontrado el bug de mover/redimensionar */}
+      <div className="fixed bottom-2 left-2 z-[999] max-w-sm rounded-lg bg-black/85 p-2 font-mono text-[10px] leading-tight text-lime-300 shadow-lg">
+        <div className="mb-1 font-bold text-white">DEBUG (temporal)</div>
+        <div className="mb-1 text-yellow-300">dragState: {dragState ? `${dragState.mode} ann=${dragState.annotationId}` : "null"}</div>
+        <div className="mb-1 text-cyan-300">{debugMove}</div>
+        {debugLog.length === 0 && <div>sin eventos aún — intenta arrastrar una caja</div>}
+        {debugLog.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
+      </div>
     </div>
   );
 }
