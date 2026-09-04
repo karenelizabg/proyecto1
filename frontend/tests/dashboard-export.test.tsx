@@ -13,7 +13,6 @@ import {
   vi,
 } from 'vitest';
 
-
 import { DashboardPage } from '../src/pages/Dashboard';
 
 vi.mock('../src/hooks/useDashboardSummary', () => ({
@@ -26,13 +25,17 @@ afterEach(() => {
   cleanup();
 });
 
+function renderDashboard() {
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>,
+  );
+}
+
 describe('SPEC-COCO-UI-001 - exportación COCO desde Dashboard', () => {
   it('muestra la acción Exportar COCO', () => {
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
+    renderDashboard();
 
     expect(
       screen.getByRole('link', {
@@ -42,11 +45,7 @@ describe('SPEC-COCO-UI-001 - exportación COCO desde Dashboard', () => {
   });
 
   it('la acción apunta al endpoint de exportación COCO', () => {
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
+    renderDashboard();
 
     const exportLink = screen.getByRole('link', {
       name: /exportar coco/i,
