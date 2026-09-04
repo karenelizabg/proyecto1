@@ -150,9 +150,13 @@ export function AnnotateScreen() {
 
   const handleFinalize = useCallback(async () => {
     setIsFinalizing(true);
-    await finalize();
+    const ok = await finalize();
     setIsFinalizing(false);
-  }, [finalize]);
+    // Al finalizar, se cierra la pantalla y se regresa a donde se entró
+    // (Search/Upload) en vez de dejar al usuario viendo la imagen ya
+    // completada.
+    if (ok) navigate(backTarget);
+  }, [finalize, navigate, backTarget]);
 
   const handleFinishQueue = useCallback(() => {
     setQueueDone(true);

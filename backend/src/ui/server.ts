@@ -155,6 +155,11 @@ app.get('/images/search', async (req, res) => {
     return;
   }
 
+  // 'yyyy-mm-dd' parsea a medianoche UTC. Sin este ajuste, dateTo excluía
+  // cualquier imagen creada ese mismo día (todo lo que no fuera exactamente
+  // 00:00:00), dejando el rango de fechas prácticamente inutilizable.
+  if (dateTo) dateTo.setUTCHours(23, 59, 59, 999);
+
   const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
   const pageSize = Math.min(
     100,

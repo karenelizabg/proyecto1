@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
-import { BoundingBox, type Corner } from "./BoundingBox";
+import { BoundingBox, CORNERS, type Corner } from "./BoundingBox";
 import { CategoryPopover } from "./CategoryPopover";
 import { clampBBox, clientToImageCoords, MIN_BOX_SIZE_PX } from "../../lib/geometry";
 import type { Annotation, BBox, Category } from "../../types/schemas";
@@ -33,6 +33,16 @@ interface DragStateResize {
 }
 
 type DragState = DragStateMove | DragStateResize;
+
+/** Mover/redimensionar la caja pendiente (dibujada, aún sin categoría/ID). Es
+ * puro estado local: no hay nada que persistir hasta que se confirme. */
+interface PendingDragState {
+  mode: "move" | "resize";
+  corner?: Corner;
+  original: BBox;
+  pointerStartX: number;
+  pointerStartY: number;
+}
 
 interface AnnotationCanvasProps {
   imageUrl: string;
@@ -116,6 +126,7 @@ export function AnnotationCanvas({
   const [pendingBox, setPendingBox] = useState<PendingBox | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [draftOverride, setDraftOverride] = useState<{ id: number; bbox: BBox } | null>(null);
+  const [pendingDragState, setPendingDragState] = useState<PendingDragState | null>(null);
 
   const getRect = useCallback(() => containerRef.current?.getBoundingClientRect() ?? null, []);
 
@@ -127,6 +138,10 @@ export function AnnotationCanvas({
       // click fue sobre el lienzo vacío (la <img> tiene pointer-events: none).
       const rect = getRect();
       if (!rect) return;
+      // Ver el comentario equivalente en BoundingBox: sin esto, Safari puede
+      // dejar de entregar pointermove/pointerup a los listeners de window
+      // en medio del trazo.
+      event.currentTarget.setPointerCapture(event.pointerId);
       const { x, y } = clientToImageCoords(event.clientX, event.clientY, rect, displayScale);
       onSelect(null);
       setDrawState({ startX: x, startY: y, currentX: x, currentY: y });
@@ -166,6 +181,54 @@ export function AnnotationCanvas({
       window.removeEventListener("pointerup", handleUp);
     };
   }, [drawState, displayScale, getRect, imageWidth, imageHeight]);
+
+  // --- Mover / redimensionar caja pendiente (antes de confirmar categoría) --
+  const startPendingMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pendingBox) return;
+    setPendingDragState({
+      mode: "move",
+      original: pendingBox.bbox,
+      pointerStartX: event.clientX,
+      pointerStartY: event.clientY,
+    });
+  }, [pendingBox]);
+
+  const startPendingResize = useCallback(
+    (corner: Corner, event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!pendingBox) return;
+      setPendingDragState({
+        mode: "resize",
+        corner,
+        original: pendingBox.bbox,
+        pointerStartX: event.clientX,
+        pointerStartY: event.clientY,
+      });
+    },
+    [pendingBox]
+  );
+
+  useEffect(() => {
+    if (!pendingDragState) return;
+
+    const handleMove = (event: PointerEvent) => {
+      const dx = (event.clientX - pendingDragState.pointerStartX) / displayScale;
+      const dy = (event.clientY - pendingDragState.pointerStartY) / displayScale;
+      const next =
+        pendingDragState.mode === "move"
+          ? applyMove(pendingDragState.original, dx, dy, imageWidth, imageHeight)
+          : applyResize(pendingDragState.original, pendingDragState.corner!, dx, dy, imageWidth, imageHeight);
+      setPendingBox({ bbox: next });
+    };
+
+    const handleUp = () => setPendingDragState(null);
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp, { once: true });
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [pendingDragState, displayScale, imageWidth, imageHeight]);
 
   // --- Mover / redimensionar caja existente ------------------------------
   const startMove = useCallback(
@@ -321,19 +384,41 @@ export function AnnotationCanvas({
         )}
 
         {/* Caja ya soltada, en espera de que se elija su categoría. Debe
-            seguir visible mientras el popover está abierto — antes solo se
-            usaba para calcular la posición del popover y desaparecía al
-            soltar el mouse. */}
+            seguir visible mientras el popover está abierto — y, como una caja
+            ya confirmada, se puede mover/redimensionar antes de confirmar
+            (útil para ajustarla mientras se elige la categoría). */}
         {pendingBox && (
           <div
-            className="pointer-events-none absolute animate-pulse rounded-sm border-2 border-dashed border-accent-lilac bg-accent-lilac/10"
+            role="button"
+            tabIndex={0}
+            aria-label="Caja pendiente de categoría"
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              startPendingMove(e);
+            }}
+            className="absolute cursor-move rounded-sm border-2 border-dashed border-accent-lilac bg-accent-lilac/10"
             style={{
               left: pendingBox.bbox.bboxX * displayScale,
               top: pendingBox.bbox.bboxY * displayScale,
               width: pendingBox.bbox.bboxWidth * displayScale,
               height: pendingBox.bbox.bboxHeight * displayScale,
             }}
-          />
+          >
+            {CORNERS.map(({ corner, className }) => (
+              <div
+                key={corner}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  startPendingResize(corner, e);
+                }}
+                className={`absolute h-3 w-3 rounded-sm border border-white bg-accent-lilac ${className}`}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -349,7 +434,11 @@ export function AnnotationCanvas({
           }}
           onCancel={() => setPendingBox(null)}
           onConfirm={(categoryId) => {
-            void onCreateBox(categoryId, pendingBox.bbox);
+            // Selecciona la caja recién creada de inmediato: así quedan
+            // visibles sus manijas de resize sin necesitar un clic extra.
+            void onCreateBox(categoryId, pendingBox.bbox).then((created) => {
+              if (created) onSelect(created.id);
+            });
             setPendingBox(null);
           }}
         />

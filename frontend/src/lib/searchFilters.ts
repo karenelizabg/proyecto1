@@ -1,6 +1,6 @@
 import type { ImageStatus } from "@/api/schemas";
 
-export const DEFAULT_PAGE_SIZE = 24;
+export const DEFAULT_PAGE_SIZE = 15;
 
 export interface SearchFilters {
   q: string;
