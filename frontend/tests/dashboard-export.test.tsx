@@ -1,7 +1,17 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 
 import { DashboardPage } from '../src/pages/Dashboard';
@@ -11,6 +21,10 @@ vi.mock('../src/hooks/useDashboardSummary', () => ({
     status: 'loading',
   }),
 }));
+
+afterEach(() => {
+  cleanup();
+});
 
 describe('SPEC-COCO-UI-001 - exportación COCO desde Dashboard', () => {
   it('muestra la acción Exportar COCO', () => {

@@ -1,4 +1,4 @@
-import { Search, Upload } from 'lucide-react';
+import { Download, Search, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AnnotationProgressDonut } from '../components/dashboard/AnnotationProgressDonut';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
@@ -22,6 +22,13 @@ export function DashboardPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <a
+                href="/api/export/coco"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-sidebar"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                Exportar COCO
+              </a>
             <Link
               to="/search"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink transition-colors hover:bg-sidebar"
