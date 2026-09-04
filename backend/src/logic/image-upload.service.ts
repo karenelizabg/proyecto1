@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import sharp from 'sharp';
+import sharp, { type Metadata } from 'sharp';
 
 import { env } from '../config/env.js';
 import {
@@ -11,6 +11,7 @@ import {
   uploadImageObject,
 } from '../data/index.js';
 
+import { NotFoundError, ValidationError } from './errors.js';
 import { validateImageUpload } from './image-upload.validation.js';
 
 export interface UploadImageInput {
@@ -42,14 +43,20 @@ export async function uploadImage(input: UploadImageInput): Promise<UploadImageR
   );
 
   if (!validation.success) {
-    throw new Error('La imagen no cumple con los requisitos de carga.');
+    throw new ValidationError('La imagen no cumple con los requisitos de carga.');
   }
 
   // Sharp verifica que el contenido sea realmente una imagen.
-  const metadata = await sharp(input.buffer).metadata();
+  // Un buffer corrupto o con extensión falseada falla aquí.
+  let metadata: Metadata;
+  try {
+    metadata = await sharp(input.buffer).metadata();
+  } catch {
+    throw new ValidationError('El archivo no es una imagen válida.');
+  }
 
   if (!metadata.width || !metadata.height) {
-    throw new Error('No se pudieron obtener las dimensiones de la imagen.');
+    throw new ValidationError('No se pudieron obtener las dimensiones de la imagen.');
   }
 
   // Genera una key única para evitar colisiones en MinIO.
@@ -91,10 +98,11 @@ export async function uploadImage(input: UploadImageInput): Promise<UploadImageR
 export async function deleteImage(imageId: number): Promise<void> {
   const image = await findImageById(imageId);
   if (!image) {
-    throw new Error('La imagen no existe.');
+    throw new NotFoundError('La imagen no existe.');
   }
 
+  // Se borra primero la fila: si falla el binario, no queda un registro
+  // apuntando a un archivo inexistente.
   await deleteImageRow(imageId);
-  await deleteImageObject(image.storageKey);
+  await deleteImageObject(image.storageKey).catch(() => undefined);
 }
-

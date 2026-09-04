@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ZodSchema } from 'zod';
 
+/**
+ * Base URL del backend. Igual que en los clientes de `lib/api` y `api`:
+ * si la variable no está definida o viene vacía, se usa el proxy `/api`
+ * declarado en vite.config.ts. Una cadena vacía no activa `??`, por eso se
+ * comprueba explícitamente.
+ */
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const API_BASE_URL =
+  configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== '' ? configuredBaseUrl : '/api';
+
 type FetchState<T> =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -18,7 +28,11 @@ export function useValidatedFetch<T>(url: string, schema: ZodSchema<T>) {
     let cancelled = false;
     setState({ status: 'loading' });
 
-    fetch(url)
+    // La URL puede venir absoluta (http...) o relativa al backend (/dashboard...).
+    // Las relativas se prefijan con la base del API para pasar por el proxy.
+    const requestUrl = /^https?:\/\//.test(url) ? url : `${API_BASE_URL}${url}`;
+
+    fetch(requestUrl)
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(`El servidor respondió con estado ${res.status}.`);

@@ -1,4 +1,4 @@
-import { listCategories, type Category } from '../data/index.js';
+import { type Category, listCategories } from '../data/index.js';
 
 /**
  * Devuelve todas las categorías disponibles para anotar.

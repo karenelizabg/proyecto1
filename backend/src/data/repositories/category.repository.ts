@@ -1,5 +1,5 @@
 import { db } from '../db/client.js';
-import { categories, type Category } from '../db/schema.js';
+import { type Category, categories } from '../db/schema.js';
 
 /**
  * Lista todas las categorías disponibles.

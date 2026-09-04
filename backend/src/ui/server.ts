@@ -6,14 +6,18 @@ import {
   createAnnotationForImage,
   deleteAnnotation,
   deleteImage,
+  exportCocoDataset,
   getAnnotationsForImage,
   getCategories,
+  getDashboardSummary,
   getImageFile,
   initializeApplication,
+  NotFoundError,
   searchImages,
   setImageStatus,
   updateAnnotation,
   uploadImage,
+  ValidationError,
 } from '../logic/index.js';
 
 const IMAGE_STATUS_VALUES = ['pending', 'in_progress', 'completed'] as const;
@@ -21,6 +25,27 @@ type ImageStatusParam = (typeof IMAGE_STATUS_VALUES)[number];
 
 function isImageStatus(value: unknown): value is ImageStatusParam {
   return typeof value === 'string' && (IMAGE_STATUS_VALUES as readonly string[]).includes(value);
+}
+
+/**
+ * SPEC-VALID-001 — Traduce un error de la capa Logic al código HTTP correcto.
+ *
+ * El mapeo se hace por clase de error, no comparando el texto del mensaje,
+ * para que un cambio de redacción no altere la semántica de la respuesta.
+ */
+function sendError(res: express.Response, error: unknown, fallback: string): void {
+  if (error instanceof NotFoundError) {
+    res.status(404).json({ error: error.message });
+    return;
+  }
+
+  if (error instanceof ValidationError) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
+
+  console.error(fallback, error);
+  res.status(500).json({ error: fallback });
 }
 
 /**
@@ -83,23 +108,23 @@ app.post('/images', upload.single('image'), async (req, res) => {
     // storageKey, width, height directamente en la raíz.
     res.status(201).json(image);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Error desconocido al cargar la imagen.';
-
-    res.status(400).json({
-      error: message,
-    });
+    sendError(res, error, 'Error desconocido al cargar la imagen.');
   }
 });
 
 /**
- * Busca imágenes paginadas, opcionalmente filtradas por status.
+ * Busca imágenes con filtros combinables y paginación.
+ *
+ * Query params:
+ *  - q:          clases con operadores, ej. "car AND person" (SPEC-SEARCH-001)
+ *  - status:     uno o varios separados por coma
+ *  - categories: ids de categoría separados por coma
+ *  - dateFrom / dateTo: rango sobre created_at (yyyy-mm-dd)
+ *  - page / pageSize:   paginación
+ *
+ * El filtrado se resuelve en SQL, nunca en memoria.
  */
 app.get('/images/search', async (req, res) => {
-  // Acepta uno o varios status separados por coma, p. ej.
-  // "?status=pending,in_progress" (usado por la cola de "pendientes por
-  // anotar", que debe seguir mostrando una imagen mientras no esté
-  // completada, no solo mientras está "pending").
   const rawStatus = req.query.status;
   const statusValues = rawStatus === undefined ? [] : String(rawStatus).split(',');
 
@@ -110,19 +135,48 @@ app.get('/images/search', async (req, res) => {
     return;
   }
 
+  const rawCategories = req.query.categories;
+  const categoryIds =
+    rawCategories === undefined
+      ? undefined
+      : String(rawCategories)
+          .split(',')
+          .map((value) => Number.parseInt(value.trim(), 10))
+          .filter((value) => Number.isInteger(value) && value > 0);
+
+  const dateFrom = req.query.dateFrom ? new Date(String(req.query.dateFrom)) : undefined;
+  const dateTo = req.query.dateTo ? new Date(String(req.query.dateTo)) : undefined;
+
+  if (
+    (dateFrom && Number.isNaN(dateFrom.getTime())) ||
+    (dateTo && Number.isNaN(dateTo.getTime()))
+  ) {
+    res.status(400).json({ error: 'Las fechas dateFrom/dateTo deben tener formato válido.' });
+    return;
+  }
+
   const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
   const pageSize = Math.min(
     100,
     Math.max(1, Number.parseInt(String(req.query.pageSize ?? '50'), 10) || 50),
   );
 
-  const result = await searchImages({
-    status: statusValues.length > 0 ? (statusValues as ImageStatusParam[]) : undefined,
-    page,
-    pageSize,
-  });
+  try {
+    const result = await searchImages({
+      q: req.query.q ? String(req.query.q) : undefined,
+      status: statusValues.length > 0 ? (statusValues as ImageStatusParam[]) : undefined,
+      categoryIds: categoryIds && categoryIds.length > 0 ? categoryIds : undefined,
+      dateFrom,
+      dateTo,
+      page,
+      pageSize,
+    });
 
-  res.status(200).json(result);
+    res.status(200).json(result);
+  } catch (error) {
+    // Una expresión de búsqueda ambigua (mezclar AND y OR) es un 400.
+    sendError(res, error, 'Error al buscar imágenes.');
+  }
 });
 
 /**
@@ -139,8 +193,7 @@ app.delete('/images/:imageId', async (req, res) => {
     await deleteImage(imageId);
     res.status(204).end();
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo eliminar la imagen.';
-    res.status(404).json({ error: message });
+    sendError(res, error, 'No se pudo eliminar la imagen.');
   }
 });
 
@@ -170,19 +223,18 @@ app.get('/images/:imageId/file', async (req, res) => {
  */
 app.patch('/images/:imageId/status', async (req, res) => {
   const imageId = Number.parseInt(req.params.imageId, 10);
-  const status = req.body?.status;
 
-  if (Number.isNaN(imageId) || (status !== 'in_progress' && status !== 'completed')) {
-    res.status(400).json({ error: 'Solicitud inválida.' });
+  if (Number.isNaN(imageId)) {
+    res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
 
   try {
-    await setImageStatus(imageId, status);
+    // El status se valida con Zod dentro del servicio.
+    await setImageStatus(imageId, req.body?.status);
     res.status(204).end();
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Error al actualizar el status.';
-    res.status(400).json({ error: message });
+    sendError(res, error, 'Error al actualizar el status.');
   }
 });
 
@@ -196,8 +248,12 @@ app.get('/images/:imageId/annotations', async (req, res) => {
     return;
   }
 
-  const annotations = await getAnnotationsForImage(imageId);
-  res.status(200).json(annotations);
+  try {
+    const annotations = await getAnnotationsForImage(imageId);
+    res.status(200).json(annotations);
+  } catch (error) {
+    sendError(res, error, 'Error al obtener las anotaciones.');
+  }
 });
 
 app.post('/images/:imageId/annotations', async (req, res) => {
@@ -211,8 +267,7 @@ app.post('/images/:imageId/annotations', async (req, res) => {
     const created = await createAnnotationForImage(imageId, req.body);
     res.status(201).json(created);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo crear la anotación.';
-    res.status(400).json({ error: message });
+    sendError(res, error, 'No se pudo crear la anotación.');
   }
 });
 
@@ -230,8 +285,7 @@ app.patch('/annotations/:annotationId', async (req, res) => {
     const updated = await updateAnnotation(annotationId, req.body);
     res.status(200).json(updated);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo actualizar la anotación.';
-    res.status(400).json({ error: message });
+    sendError(res, error, 'No se pudo actualizar la anotación.');
   }
 });
 
@@ -242,8 +296,12 @@ app.delete('/annotations/:annotationId', async (req, res) => {
     return;
   }
 
-  await deleteAnnotation(annotationId);
-  res.status(204).end();
+  try {
+    await deleteAnnotation(annotationId);
+    res.status(204).end();
+  } catch (error) {
+    sendError(res, error, 'No se pudo eliminar la anotación.');
+  }
 });
 
 /**
@@ -252,6 +310,34 @@ app.delete('/annotations/:annotationId', async (req, res) => {
 app.get('/categories', async (_req, res) => {
   const categories = await getCategories();
   res.status(200).json(categories);
+});
+
+/**
+ * Métricas del dashboard, calculadas en SQL: totales, objetos por clase,
+ * progreso de anotación y actividad reciente (SPEC-DASH-001).
+ */
+app.get('/dashboard/summary', async (_req, res) => {
+  try {
+    const summary = await getDashboardSummary();
+    res.status(200).json(summary);
+  } catch (error) {
+    sendError(res, error, 'Error al calcular las métricas del dashboard.');
+  }
+});
+
+/**
+ * Exporta el dataset completo en formato COCO como archivo descargable
+ * (SPEC-COCO-001).
+ */
+app.get('/export/coco', async (_req, res) => {
+  try {
+    const dataset = await exportCocoDataset();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="coco-dataset.json"');
+    res.send(JSON.stringify(dataset, null, 2));
+  } catch (error) {
+    sendError(res, error, 'Error al exportar el dataset.');
+  }
 });
 
 /**

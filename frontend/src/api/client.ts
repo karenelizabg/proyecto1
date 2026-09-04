@@ -9,7 +9,14 @@ import type { z } from "zod";
  * el proxy /api definido en vite.config.ts (ver ese archivo para el target
  * real del backend).
  */
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+/**
+ * Si la variable no está definida o viene vacía, se usa el proxy `/api`
+ * declarado en vite.config.ts. Una cadena vacía no activa `??`, por eso se
+ * comprueba explícitamente.
+ */
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const BASE_URL =
+  configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== "" ? configuredBaseUrl : "/api";
 
 export class ApiError extends Error {
   readonly status: number;

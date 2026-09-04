@@ -1,7 +1,7 @@
 {
   "name": "image-annotation-repo",
   "version": "0.1.0",
-  "description": "Monolito para repositorio de imágenes y anotaciones (Fase 2: backend/data)",
+  "description": "Backend del portal de anotación de imágenes (UI → Logic → Data, MariaDB + MinIO)",
   "main": "dist/ui/server.js",
   "scripts": {
     "test": "vitest run",
@@ -9,7 +9,7 @@
     "dev": "tsx watch src/ui/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/ui/server.js",
-    "start:prod": "NODE_ENV=production PORT=3100 node dist/ui/server.js",
+    "start:prod": "cross-env NODE_ENV=production PORT=3100 node dist/ui/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -40,6 +40,7 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.4.0",
+    "cross-env": "10.1.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
