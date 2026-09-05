@@ -18,6 +18,13 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefine
 const BASE_URL =
   configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== "" ? configuredBaseUrl : "/api";
 
+/**
+ * Construye una URL utilizando la configuración central del API.
+ */
+export function buildApiUrl(path: string): string {
+  return `${BASE_URL}${path}`;
+}
+
 export class ApiError extends Error {
   readonly status: number;
 
@@ -52,7 +59,7 @@ export async function getJson<S extends z.ZodType>(
 ): Promise<z.infer<S>> {
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await fetch(buildApiUrl(path), {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: options?.signal,
