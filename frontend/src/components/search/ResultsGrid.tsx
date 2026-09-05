@@ -1,7 +1,7 @@
 import type { ImageSearchItem } from "@/api/schemas";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { ImageCard } from "./ImageCard";
 
 interface ResultsGridProps {
@@ -35,6 +35,7 @@ export function ResultsGrid({
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: lista fija de placeholders sin identidad propia.
           <Skeleton key={i} className="aspect-square w-full" />
         ))}
       </div>

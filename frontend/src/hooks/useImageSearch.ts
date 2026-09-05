@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getJson } from "@/api/client";
-import { imageSearchResponseSchema, type ImageSearchItem, type Pagination } from "@/api/schemas";
+import { type ImageSearchItem, imageSearchResponseSchema, type Pagination } from "@/api/schemas";
 import { filtersToBackendQuery, type SearchFilters } from "@/lib/searchFilters";
 
 interface UseImageSearchResult {
@@ -26,6 +26,8 @@ export function useImageSearch(filters: SearchFilters): UseImageSearchResult {
 
   const queryKey = filtersToBackendQuery(filters);
 
+  // queryKey ya representa todo el estado relevante de `filters`; attempt solo fuerza el reintento.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ver comentario anterior.
   useEffect(() => {
     const controller = new AbortController();
 
@@ -50,8 +52,6 @@ export function useImageSearch(filters: SearchFilters): UseImageSearchResult {
       });
 
     return () => controller.abort();
-    // queryKey ya representa todo el estado relevante de `filters`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryKey, attempt]);
 
   return {

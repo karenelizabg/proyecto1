@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ImageSearchItem } from "@/api/schemas";
-import type { Annotation } from "../../types/schemas";
-import type { AnnotateNavigationState } from "../../types/navigation";
+import { Modal } from "@/components/ui/Modal";
 import { getAnnotations } from "@/lib/api/annotations";
 import { getImageFileUrl } from "@/lib/api/images";
-import { Modal } from "@/components/ui/Modal";
+import type { AnnotateNavigationState } from "../../types/navigation";
+import type { Annotation } from "../../types/schemas";
 import { StatusBadge } from "./StatusBadge";
 
 interface ImagePreviewModalProps {
@@ -21,7 +21,11 @@ interface ImagePreviewModalProps {
  * permite editar cajas — para eso existe el botón "Editar anotaciones", que
  * lleva a la pantalla de anotación de pantalla completa.
  */
-export function ImagePreviewModal({ images, initialIndex, onClose }: ImagePreviewModalProps): JSX.Element | null {
+export function ImagePreviewModal({
+  images,
+  initialIndex,
+  onClose,
+}: ImagePreviewModalProps): JSX.Element | null {
   const navigate = useNavigate();
   const [index, setIndex] = useState(initialIndex);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);

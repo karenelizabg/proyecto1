@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const objectPerClassSchema = z.object({
   categoryId: z.number(),
@@ -10,7 +10,7 @@ export const objectPerClassSchema = z.object({
 export const recentUploadSchema = z.object({
   id: z.number(),
   thumbnailUrl: z.string(),
-  status: z.enum(['pending', 'in_progress', 'completed']),
+  status: z.enum(["pending", "in_progress", "completed"]),
 });
 
 export const annotationProgressSchema = z.object({

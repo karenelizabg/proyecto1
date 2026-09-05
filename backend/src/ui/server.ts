@@ -11,6 +11,8 @@ import {
   getCategories,
   getDashboardSummary,
   getImageFile,
+  idParamSchema,
+  imageSearchSchema,
   initializeApplication,
   NotFoundError,
   searchImages,
@@ -20,11 +22,14 @@ import {
   ValidationError,
 } from '../logic/index.js';
 
-const IMAGE_STATUS_VALUES = ['pending', 'in_progress', 'completed'] as const;
-type ImageStatusParam = (typeof IMAGE_STATUS_VALUES)[number];
-
-function isImageStatus(value: unknown): value is ImageStatusParam {
-  return typeof value === 'string' && (IMAGE_STATUS_VALUES as readonly string[]).includes(value);
+/**
+ * SPEC-VALID-001 — Valida un route param de id (`:imageId`, `:annotationId`)
+ * con el mismo esquema que ya cubren los tests de `idParamSchema`: entero
+ * positivo, rechaza decimales, negativos, cero y no numéricos.
+ */
+function parseIdParam(raw: unknown): number | null {
+  const result = idParamSchema.safeParse(raw);
+  return result.success ? result.data : null;
 }
 
 /**
@@ -125,56 +130,30 @@ app.post('/images', upload.single('image'), async (req, res) => {
  * El filtrado se resuelve en SQL, nunca en memoria.
  */
 app.get('/images/search', async (req, res) => {
-  const rawStatus = req.query.status;
-  const statusValues = rawStatus === undefined ? [] : String(rawStatus).split(',');
-
-  if (statusValues.some((value) => !isImageStatus(value))) {
+  const parsed = imageSearchSchema.safeParse(req.query);
+  if (!parsed.success) {
     res.status(400).json({
-      error: 'El parámetro status debe ser "pending", "in_progress" o "completed".',
+      error: parsed.error.issues[0]?.message ?? 'Parámetros de búsqueda inválidos.',
     });
     return;
   }
 
-  const rawCategories = req.query.categories;
-  const categoryIds =
-    rawCategories === undefined
-      ? undefined
-      : String(rawCategories)
-          .split(',')
-          .map((value) => Number.parseInt(value.trim(), 10))
-          .filter((value) => Number.isInteger(value) && value > 0);
-
-  const dateFrom = req.query.dateFrom ? new Date(String(req.query.dateFrom)) : undefined;
-  const dateTo = req.query.dateTo ? new Date(String(req.query.dateTo)) : undefined;
-
-  if (
-    (dateFrom && Number.isNaN(dateFrom.getTime())) ||
-    (dateTo && Number.isNaN(dateTo.getTime()))
-  ) {
-    res.status(400).json({ error: 'Las fechas dateFrom/dateTo deben tener formato válido.' });
-    return;
-  }
+  const { q, status, categories, dateFrom, dateTo } = parsed.data;
 
   // 'yyyy-mm-dd' parsea a medianoche UTC. Sin este ajuste, dateTo excluía
   // cualquier imagen creada ese mismo día (todo lo que no fuera exactamente
   // 00:00:00), dejando el rango de fechas prácticamente inutilizable.
   if (dateTo) dateTo.setUTCHours(23, 59, 59, 999);
 
-  const page = Math.max(1, Number.parseInt(String(req.query.page ?? '1'), 10) || 1);
-  const pageSize = Math.min(
-    100,
-    Math.max(1, Number.parseInt(String(req.query.pageSize ?? '50'), 10) || 50),
-  );
-
   try {
     const result = await searchImages({
-      q: req.query.q ? String(req.query.q) : undefined,
-      status: statusValues.length > 0 ? (statusValues as ImageStatusParam[]) : undefined,
-      categoryIds: categoryIds && categoryIds.length > 0 ? categoryIds : undefined,
+      q,
+      status,
+      categoryIds: categories,
       dateFrom,
       dateTo,
-      page,
-      pageSize,
+      page: parsed.data.page,
+      pageSize: parsed.data.pageSize,
     });
 
     res.status(200).json(result);
@@ -188,8 +167,8 @@ app.get('/images/search', async (req, res) => {
  * Elimina una imagen (registro + archivo en MinIO + sus anotaciones).
  */
 app.delete('/images/:imageId', async (req, res) => {
-  const imageId = Number.parseInt(req.params.imageId, 10);
-  if (Number.isNaN(imageId)) {
+  const imageId = parseIdParam(req.params.imageId);
+  if (imageId === null) {
     res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
@@ -206,8 +185,8 @@ app.delete('/images/:imageId', async (req, res) => {
  * Sirve el binario de una imagen desde MinIO.
  */
 app.get('/images/:imageId/file', async (req, res) => {
-  const imageId = Number.parseInt(req.params.imageId, 10);
-  if (Number.isNaN(imageId)) {
+  const imageId = parseIdParam(req.params.imageId);
+  if (imageId === null) {
     res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
@@ -227,9 +206,9 @@ app.get('/images/:imageId/file', async (req, res) => {
  * Cambia el status de una imagen.
  */
 app.patch('/images/:imageId/status', async (req, res) => {
-  const imageId = Number.parseInt(req.params.imageId, 10);
+  const imageId = parseIdParam(req.params.imageId);
 
-  if (Number.isNaN(imageId)) {
+  if (imageId === null) {
     res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
@@ -247,8 +226,8 @@ app.patch('/images/:imageId/status', async (req, res) => {
  * Lista/crea anotaciones de una imagen.
  */
 app.get('/images/:imageId/annotations', async (req, res) => {
-  const imageId = Number.parseInt(req.params.imageId, 10);
-  if (Number.isNaN(imageId)) {
+  const imageId = parseIdParam(req.params.imageId);
+  if (imageId === null) {
     res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
@@ -262,8 +241,8 @@ app.get('/images/:imageId/annotations', async (req, res) => {
 });
 
 app.post('/images/:imageId/annotations', async (req, res) => {
-  const imageId = Number.parseInt(req.params.imageId, 10);
-  if (Number.isNaN(imageId)) {
+  const imageId = parseIdParam(req.params.imageId);
+  if (imageId === null) {
     res.status(400).json({ error: 'ID de imagen inválido.' });
     return;
   }
@@ -280,8 +259,8 @@ app.post('/images/:imageId/annotations', async (req, res) => {
  * Actualiza o elimina una anotación existente.
  */
 app.patch('/annotations/:annotationId', async (req, res) => {
-  const annotationId = Number.parseInt(req.params.annotationId, 10);
-  if (Number.isNaN(annotationId)) {
+  const annotationId = parseIdParam(req.params.annotationId);
+  if (annotationId === null) {
     res.status(400).json({ error: 'ID de anotación inválido.' });
     return;
   }
@@ -295,8 +274,8 @@ app.patch('/annotations/:annotationId', async (req, res) => {
 });
 
 app.delete('/annotations/:annotationId', async (req, res) => {
-  const annotationId = Number.parseInt(req.params.annotationId, 10);
-  if (Number.isNaN(annotationId)) {
+  const annotationId = parseIdParam(req.params.annotationId);
+  if (annotationId === null) {
     res.status(400).json({ error: 'ID de anotación inválido.' });
     return;
   }

@@ -1,5 +1,5 @@
-import { StatusBadge } from "../search/StatusBadge";
 import type { ImageStatus } from "../../types/schemas";
+import { StatusBadge } from "../search/StatusBadge";
 
 export function Toolbar({
   filename,

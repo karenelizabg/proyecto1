@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type DragEvent as ReactDragEvent } from "react";
+import { type DragEvent as ReactDragEvent, useCallback, useRef, useState } from "react";
 
 interface DropzoneProps {
   onFiles: (files: FileList | File[]) => void;
@@ -20,6 +20,7 @@ export function Dropzone({ onFiles }: DropzoneProps) {
   );
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: contiene un <input type="file">; anidar input dentro de button es HTML inválido.
     <div
       role="button"
       tabIndex={0}

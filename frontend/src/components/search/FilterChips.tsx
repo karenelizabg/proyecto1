@@ -19,7 +19,11 @@ interface FilterChipsProps {
   onChange: (next: Partial<SearchFilters>) => void;
 }
 
-export function FilterChips({ filters, categories, onChange }: FilterChipsProps): JSX.Element | null {
+export function FilterChips({
+  filters,
+  categories,
+  onChange,
+}: FilterChipsProps): JSX.Element | null {
   const categoryById = new Map(categories.map((c) => [c.id, c]));
 
   const chips: Chip[] = [];
@@ -37,7 +41,8 @@ export function FilterChips({ filters, categories, onChange }: FilterChipsProps)
     chips.push({
       key: `cat-${id}`,
       label: category?.name ?? `Categoría #${id}`,
-      onRemove: () => onChange({ categoryIds: filters.categoryIds.filter((c) => c !== id), page: 1 }),
+      onRemove: () =>
+        onChange({ categoryIds: filters.categoryIds.filter((c) => c !== id), page: 1 }),
     });
   }
 
@@ -80,7 +85,9 @@ export function FilterChips({ filters, categories, onChange }: FilterChipsProps)
       {chips.length > 1 && (
         <button
           type="button"
-          onClick={() => onChange({ q: "", categoryIds: [], statuses: [], dateFrom: "", dateTo: "", page: 1 })}
+          onClick={() =>
+            onChange({ q: "", categoryIds: [], statuses: [], dateFrom: "", dateTo: "", page: 1 })
+          }
           className="text-xs font-medium text-ink-faint underline-offset-2 hover:text-ink-muted hover:underline"
         >
           Limpiar todo

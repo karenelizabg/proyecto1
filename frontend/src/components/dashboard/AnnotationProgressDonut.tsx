@@ -1,18 +1,18 @@
-import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
-import type { AnnotationProgress } from '../../types/dashboard';
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import type { AnnotationProgress } from "../../types/dashboard";
 
 type AnnotationProgressDonutProps = {
   progress: AnnotationProgress;
 };
 
 const COLORS = {
-  annotated: '#2FAF87', // accent-mint
-  pending: '#E7E5E1', // border
+  annotated: "#2FAF87", // accent-mint
+  pending: "#E7E5E1", // border
 } as const;
 
 const segments = [
-  { key: 'annotated', label: 'Anotadas' },
-  { key: 'pending', label: 'Pendientes' },
+  { key: "annotated", label: "Anotadas" },
+  { key: "pending", label: "Pendientes" },
 ] as const;
 
 export function AnnotationProgressDonut({ progress }: AnnotationProgressDonutProps) {

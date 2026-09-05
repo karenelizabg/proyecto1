@@ -1,5 +1,14 @@
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { ObjectPerClass } from '../../types/dashboard';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import type { ObjectPerClass } from "../../types/dashboard";
 
 type ObjectsPerClassChartProps = {
   data: ObjectPerClass[];
@@ -23,21 +32,21 @@ export function ObjectsPerClassChart({ data }: ObjectsPerClassChartProps) {
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E7E5E1" />
             <XAxis
               dataKey="name"
-              tick={{ fontSize: 12, fill: '#8A8782' }}
-              axisLine={{ stroke: '#E7E5E1' }}
+              tick={{ fontSize: 12, fill: "#8A8782" }}
+              axisLine={{ stroke: "#E7E5E1" }}
               tickLine={false}
               interval={0}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fontSize: 12, fill: '#8A8782' }}
+              tick={{ fontSize: 12, fill: "#8A8782" }}
               axisLine={false}
               tickLine={false}
               width={32}
             />
             <Tooltip
-              cursor={{ fill: '#F5F4F1' }}
-              contentStyle={{ borderRadius: 12, border: '1px solid #E7E5E1', fontSize: 12 }}
+              cursor={{ fill: "#F5F4F1" }}
+              contentStyle={{ borderRadius: 12, border: "1px solid #E7E5E1", fontSize: 12 }}
             />
             <Bar dataKey="count" radius={[6, 6, 0, 0]}>
               {data.map((entry) => (

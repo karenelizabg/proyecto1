@@ -69,9 +69,7 @@ export const imageDetailResponseSchema = imageSchema;
 export const categorySchema = z.object({
   id: z.number(),
   name: z.string(),
-  color: z
-    .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, "El color debe ser un hex #RRGGBB"),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "El color debe ser un hex #RRGGBB"),
   createdAt: z.string(),
 });
 export type Category = z.infer<typeof categorySchema>;

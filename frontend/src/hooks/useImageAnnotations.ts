@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createAnnotation, deleteAnnotation, getAnnotations, updateAnnotation } from "../lib/api/annotations";
-import { getImage, getImageFileUrl, loadImageDimensions, patchImageStatus } from "../lib/api/images";
+import {
+  createAnnotation,
+  deleteAnnotation,
+  getAnnotations,
+  updateAnnotation,
+} from "../lib/api/annotations";
+import {
+  getImage,
+  getImageFileUrl,
+  loadImageDimensions,
+  patchImageStatus,
+} from "../lib/api/images";
 import type { Annotation, BBox, ImageStatus } from "../types/schemas";
 import { useUndoStack } from "./useUndoStack";
 
@@ -98,7 +108,9 @@ export function useImageAnnotations(
   }, [load]);
 
   const markInProgressIfNeeded = useCallback(() => {
-    setImageMeta((prev) => (prev && prev.status === "pending" ? { ...prev, status: "in_progress" } : prev));
+    setImageMeta((prev) =>
+      prev && prev.status === "pending" ? { ...prev, status: "in_progress" } : prev
+    );
   }, []);
 
   const createBox = useCallback(
@@ -127,9 +139,7 @@ export function useImageAnnotations(
   const commitBoxChange = useCallback(
     async (annotationId: number, before: BBox, after: BBox) => {
       // Optimista: refleja el cambio de inmediato en la UI.
-      setAnnotations((prev) =>
-        prev.map((a) => (a.id === annotationId ? { ...a, ...after } : a))
-      );
+      setAnnotations((prev) => prev.map((a) => (a.id === annotationId ? { ...a, ...after } : a)));
       try {
         const updated = await updateAnnotation(annotationId, after);
         setAnnotations((prev) => prev.map((a) => (a.id === annotationId ? updated : a)));
@@ -194,7 +204,9 @@ export function useImageAnnotations(
   const saveDraft = useCallback(async () => {
     try {
       await patchImageStatus(imageId, "in_progress");
-      setImageMeta((prev) => (prev && prev.status !== "completed" ? { ...prev, status: "in_progress" } : prev));
+      setImageMeta((prev) =>
+        prev && prev.status !== "completed" ? { ...prev, status: "in_progress" } : prev
+      );
       return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : "No se pudo guardar el borrador.", "error");

@@ -15,7 +15,12 @@ export function Pagination({ pagination, onPageChange }: PaginationProps): JSX.E
 
   return (
     <nav className="flex items-center justify-center gap-2" aria-label="Paginación de resultados">
-      <button type="button" className={buttonClass} disabled={isFirst} onClick={() => onPageChange(1)}>
+      <button
+        type="button"
+        className={buttonClass}
+        disabled={isFirst}
+        onClick={() => onPageChange(1)}
+      >
         « Primera
       </button>
       <button

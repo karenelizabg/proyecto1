@@ -1,7 +1,7 @@
 import type { ImageSearchItem } from "@/api/schemas";
 import { resolveBackendUrl } from "@/lib/api/images";
-import { StatusBadge } from "./StatusBadge";
 import { CategoryBadge } from "./CategoryBadge";
+import { StatusBadge } from "./StatusBadge";
 
 interface ImageCardProps {
   image: ImageSearchItem;
@@ -10,7 +10,12 @@ interface ImageCardProps {
   onToggleSelect: () => void;
 }
 
-export function ImageCard({ image, isSelected, onClick, onToggleSelect }: ImageCardProps): JSX.Element {
+export function ImageCard({
+  image,
+  isSelected,
+  onClick,
+  onToggleSelect,
+}: ImageCardProps): JSX.Element {
   return (
     <div
       className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-card transition-shadow hover:shadow-popover ${

@@ -93,27 +93,6 @@ export const idParamSchema = z.coerce
   .positive({ message: 'El id debe ser mayor que cero.' });
 
 /**
- * Body de `POST /annotations`.
- * Extiende el esquema base de bbox agregando la imagen destino.
- */
-export const createAnnotationSchema = bboxBaseSchema.extend({
-  imageId: z
-    .number({ message: 'El imageId debe ser un n├║mero.' })
-    .int({ message: 'El imageId debe ser un entero.' })
-    .positive({ message: 'El imageId debe ser mayor que cero.' }),
-});
-
-export type CreateAnnotationBody = z.infer<typeof createAnnotationSchema>;
-
-/**
- * Body de `PATCH /annotations/:id`.
- * La imagen no cambia; solo la categor├¡a y la geometr├¡a de la caja.
- */
-export const updateAnnotationSchema = bboxBaseSchema;
-
-export type UpdateAnnotationBody = z.infer<typeof updateAnnotationSchema>;
-
-/**
  * Body de `POST /images/:imageId/annotations`.
  *
  * La imagen destino viaja en la ruta, no en el body. `iscrowd` es opcional
@@ -139,6 +118,26 @@ export const patchAnnotationSchema = createAnnotationForImageSchema
 
 export type PatchAnnotationBody = z.infer<typeof patchAnnotationSchema>;
 
+/**
+ * Combina un patch parcial con los valores actuales de la anotación.
+ *
+ * Cada campo ausente en el patch conserva su valor existente — incluido
+ * `categoryId`: la UI puede mover o redimensionar una caja sin
+ * reclasificarla, así que un patch sin `categoryId` nunca debe alterarlo.
+ */
+export function mergeAnnotationPatch(
+  existing: BboxBaseInput,
+  patch: PatchAnnotationBody,
+): BboxBaseInput {
+  return {
+    categoryId: patch.categoryId ?? existing.categoryId,
+    bboxX: patch.bboxX ?? existing.bboxX,
+    bboxY: patch.bboxY ?? existing.bboxY,
+    bboxWidth: patch.bboxWidth ?? existing.bboxWidth,
+    bboxHeight: patch.bboxHeight ?? existing.bboxHeight,
+  };
+}
+
 /** Estados v├ílidos del ciclo de anotaci├│n de una imagen. */
 export const imageStatusValues = ['pending', 'in_progress', 'completed'] as const;
 
@@ -155,18 +154,6 @@ export const imageStatusTransitionSchema = z.object({
 });
 
 export type ImageStatusTransitionBody = z.infer<typeof imageStatusTransitionSchema>;
-
-/**
- * Body de `PATCH /images/:id/status`.
- * Sustituye la aserci├│n de tipo `req.body as { status?: string }`.
- */
-export const imageStatusSchema = z.object({
-  status: z.enum(imageStatusValues, {
-    message: `El status debe ser uno de: ${imageStatusValues.join(', ')}.`,
-  }),
-});
-
-export type ImageStatusBody = z.infer<typeof imageStatusSchema>;
 
 /**
  * Normaliza un query param que puede venir como lista separada por comas,
@@ -218,8 +205,8 @@ export const imageSearchSchema = z.object({
       )
       .optional(),
   ),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: z.coerce.date({ message: 'dateFrom debe tener formato de fecha válido.' }).optional(),
+  dateTo: z.coerce.date({ message: 'dateTo debe tener formato de fecha válido.' }).optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(24),
 });

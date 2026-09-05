@@ -28,7 +28,9 @@ export function Stepper({ steps, currentIndex }: StepperProps) {
               >
                 {isDone ? "✓" : index + 1}
               </span>
-              <span className={`text-xs font-medium ${isCurrent ? "text-ink" : "text-ink-faint"}`}>{step}</span>
+              <span className={`text-xs font-medium ${isCurrent ? "text-ink" : "text-ink-faint"}`}>
+                {step}
+              </span>
             </span>
           </li>
         );

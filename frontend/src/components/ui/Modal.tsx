@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 
 interface ModalProps {
   title: string;
@@ -14,7 +14,13 @@ interface ModalProps {
  * El contenido de las acciones (footer) se pasa como children para que cada
  * caso de uso controle sus propios botones (ver LeaveConfirmModal).
  */
-export function Modal({ title, description, onClose, children, maxWidthClassName = "max-w-sm" }: ModalProps) {
+export function Modal({
+  title,
+  description,
+  onClose,
+  children,
+  maxWidthClassName = "max-w-sm",
+}: ModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -24,6 +30,7 @@ export function Modal({ title, description, onClose, children, maxWidthClassName
   }, [onClose]);
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: cerrar con teclado ya lo cubre el listener de Escape de arriba.
     <div
       role="dialog"
       aria-modal="true"
@@ -31,6 +38,8 @@ export function Modal({ title, description, onClose, children, maxWidthClassName
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4 backdrop-blur-[2px]"
       onClick={onClose}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: solo evita que el click se propague al backdrop, no es una acción. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: no es una acción de teclado, solo frena la propagación del click. */}
       <div
         onClick={(e) => e.stopPropagation()}
         className={`w-full ${maxWidthClassName} animate-popover-in rounded-2xl border border-border bg-surface p-5 shadow-popover`}

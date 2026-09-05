@@ -37,10 +37,40 @@ errores tipados que la UI mapea a códigos HTTP:
 
 ## Requisitos
 
-- Node.js 20 o superior
-- Docker (para MariaDB y MinIO)
+- Docker y Docker Compose
 
-## Puesta en marcha desde cero
+## Despliegue con un solo comando
+
+```bash
+docker compose up --build
+```
+
+Este comando levanta los cuatro servicios (MariaDB, MinIO, backend y
+frontend). El backend espera a que MariaDB y MinIO estén listos, aplica las
+migraciones y siembra datos de ejemplo automáticamente antes de arrancar; no
+hace falta ejecutar ningún paso manual.
+
+| Servicio        | URL                              |
+|-----------------|-----------------------------------|
+| Frontend        | http://localhost:8080            |
+| Backend (API)   | http://localhost:3100            |
+| Consola MinIO   | http://localhost:9001 (minioadmin/minioadmin) |
+
+Para apagar todo y borrar los datos persistidos (MariaDB y MinIO):
+
+```bash
+docker compose down -v
+```
+
+Las credenciales de MariaDB/MinIO usadas en `docker-compose.yml` son las de
+desarrollo del proyecto; para un despliegue real, cámbialas ahí antes de
+publicar los puertos a una red no confiable.
+
+## Desarrollo local sin Docker para las apps
+
+Para iterar con hot reload en backend y frontend, puedes levantar solo la
+infraestructura con Docker y correr los paquetes Node directamente en tu
+máquina:
 
 ### 1. Infraestructura
 
@@ -101,6 +131,13 @@ Respuesta esperada:
 ```
 
 ## Producción
+
+La forma recomendada de desplegar es `docker compose up --build` (ver
+[Despliegue con un solo comando](#despliegue-con-un-solo-comando)): construye
+las imágenes de backend y frontend y levanta MariaDB y MinIO junto con ellas.
+
+Si necesitas correr el backend fuera de Docker contra tu propia
+infraestructura:
 
 ```bash
 cd backend
@@ -205,6 +242,7 @@ Desde `frontend/`:
 
 ```bash
 npm run typecheck
+npm run lint        # Biome: cero errores y cero advertencias
 npm run build
 ```
 

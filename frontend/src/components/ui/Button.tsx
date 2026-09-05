@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes, forwardRef } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "icon";
 export type ButtonSize = "sm" | "md";
@@ -47,7 +47,10 @@ function Spinner() {
  * irreversible), icon (solo ícono, cuadrado).
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = "secondary", size = "md", isLoading, disabled, className = "", children, ...props }, ref) => {
+  (
+    { variant = "secondary", size = "md", isLoading, disabled, className = "", children, ...props },
+    ref
+  ) => {
     const sizeClass = variant === "icon" ? ICON_SIZE_CLASSES[size] : SIZE_CLASSES[variant][size];
 
     return (

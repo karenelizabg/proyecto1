@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
-import { BoundingBox, CORNERS, type Corner } from "./BoundingBox";
-import { CategoryPopover } from "./CategoryPopover";
+import {
+  type PointerEvent as ReactPointerEvent,
+  type WheelEvent as ReactWheelEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { clampBBox, clientToImageCoords, MIN_BOX_SIZE_PX } from "../../lib/geometry";
 import type { Annotation, BBox, Category } from "../../types/schemas";
+import { BoundingBox, CORNERS, type Corner } from "./BoundingBox";
+import { CategoryPopover } from "./CategoryPopover";
 
 interface DrawState {
   startX: number;
@@ -36,13 +43,22 @@ type DragState = DragStateMove | DragStateResize;
 
 /** Mover/redimensionar la caja pendiente (dibujada, aún sin categoría/ID). Es
  * puro estado local: no hay nada que persistir hasta que se confirme. */
-interface PendingDragState {
-  mode: "move" | "resize";
-  corner?: Corner;
+interface PendingDragStateMove {
+  mode: "move";
   original: BBox;
   pointerStartX: number;
   pointerStartY: number;
 }
+
+interface PendingDragStateResize {
+  mode: "resize";
+  corner: Corner;
+  original: BBox;
+  pointerStartX: number;
+  pointerStartY: number;
+}
+
+type PendingDragState = PendingDragStateMove | PendingDragStateResize;
 
 interface AnnotationCanvasProps {
   imageUrl: string;
@@ -96,11 +112,13 @@ function applyResize(
   }
 
   if (w < MIN_BOX_SIZE_PX) {
-    if (corner === "sw" || corner === "nw") x = original.bboxX + original.bboxWidth - MIN_BOX_SIZE_PX;
+    if (corner === "sw" || corner === "nw")
+      x = original.bboxX + original.bboxWidth - MIN_BOX_SIZE_PX;
     w = MIN_BOX_SIZE_PX;
   }
   if (h < MIN_BOX_SIZE_PX) {
-    if (corner === "nw" || corner === "ne") y = original.bboxY + original.bboxHeight - MIN_BOX_SIZE_PX;
+    if (corner === "nw" || corner === "ne")
+      y = original.bboxY + original.bboxHeight - MIN_BOX_SIZE_PX;
     h = MIN_BOX_SIZE_PX;
   }
 
@@ -167,7 +185,11 @@ export function AnnotationCanvas({
         const w = Math.abs(prev.currentX - prev.startX);
         const h = Math.abs(prev.currentY - prev.startY);
         if (w >= MIN_BOX_SIZE_PX && h >= MIN_BOX_SIZE_PX) {
-          const bbox = clampBBox({ bboxX: x, bboxY: y, bboxWidth: w, bboxHeight: h }, imageWidth, imageHeight);
+          const bbox = clampBBox(
+            { bboxX: x, bboxY: y, bboxWidth: w, bboxHeight: h },
+            imageWidth,
+            imageHeight
+          );
           setPendingBox({ bbox });
         }
         return null;
@@ -183,15 +205,18 @@ export function AnnotationCanvas({
   }, [drawState, displayScale, getRect, imageWidth, imageHeight]);
 
   // --- Mover / redimensionar caja pendiente (antes de confirmar categoría) --
-  const startPendingMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!pendingBox) return;
-    setPendingDragState({
-      mode: "move",
-      original: pendingBox.bbox,
-      pointerStartX: event.clientX,
-      pointerStartY: event.clientY,
-    });
-  }, [pendingBox]);
+  const startPendingMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!pendingBox) return;
+      setPendingDragState({
+        mode: "move",
+        original: pendingBox.bbox,
+        pointerStartX: event.clientX,
+        pointerStartY: event.clientY,
+      });
+    },
+    [pendingBox]
+  );
 
   const startPendingResize = useCallback(
     (corner: Corner, event: ReactPointerEvent<HTMLDivElement>) => {
@@ -216,7 +241,14 @@ export function AnnotationCanvas({
       const next =
         pendingDragState.mode === "move"
           ? applyMove(pendingDragState.original, dx, dy, imageWidth, imageHeight)
-          : applyResize(pendingDragState.original, pendingDragState.corner!, dx, dy, imageWidth, imageHeight);
+          : applyResize(
+              pendingDragState.original,
+              pendingDragState.corner,
+              dx,
+              dy,
+              imageWidth,
+              imageHeight
+            );
       setPendingBox({ bbox: next });
     };
 
@@ -306,7 +338,8 @@ export function AnnotationCanvas({
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.key === "Delete" || event.key === "Backspace") && selectedId !== null) {
         const target = document.activeElement;
-        const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+        const isTyping =
+          target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
         if (!isTyping) {
           event.preventDefault();
           void onDelete(selectedId);
@@ -388,6 +421,7 @@ export function AnnotationCanvas({
             ya confirmada, se puede mover/redimensionar antes de confirmar
             (útil para ajustarla mientras se elige la categoría). */}
         {pendingBox && (
+          // biome-ignore lint/a11y/useSemanticElements: overlay de posición/tamaño absolutos con handles de resize anidados; un <button> real arrastra estilos por defecto que rompen el recuadro.
           <div
             role="button"
             tabIndex={0}
@@ -426,7 +460,10 @@ export function AnnotationCanvas({
         <CategoryPopover
           categories={categories}
           style={{
-            left: Math.min(pendingBox.bbox.bboxX * displayScale, Math.max(imageWidth * displayScale - 224, 0)),
+            left: Math.min(
+              pendingBox.bbox.bboxX * displayScale,
+              Math.max(imageWidth * displayScale - 224, 0)
+            ),
             top: Math.min(
               (pendingBox.bbox.bboxY + pendingBox.bbox.bboxHeight) * displayScale + 8,
               imageHeight * displayScale - 8

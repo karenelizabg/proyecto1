@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
-import { Dropzone } from "./Dropzone";
-import { UploadFeedbackList } from "./UploadFeedbackList";
-import { PendingImageList } from "./PendingImageList";
-import { Button } from "../ui/Button";
-import { Stepper } from "../ui/Stepper";
-import { useUploadQueue } from "../../hooks/useUploadQueue";
 import { useToasts } from "../../hooks/useToasts";
-import { ToastStack } from "../shared/ToastStack";
+import { useUploadQueue } from "../../hooks/useUploadQueue";
 import type { AnnotateNavigationState } from "../../types/navigation";
 import type { ImageStatus } from "../../types/schemas";
+import { ToastStack } from "../shared/ToastStack";
+import { Button } from "../ui/Button";
+import { Stepper } from "../ui/Stepper";
+import { Dropzone } from "./Dropzone";
+import { PendingImageList } from "./PendingImageList";
+import { UploadFeedbackList } from "./UploadFeedbackList";
 
 const UPLOAD_STEPS = ["Subir fotografías", "Identificar objetos"];
 
@@ -92,7 +92,12 @@ export function UploadScreen() {
         </section>
 
         <div className="sticky bottom-6 flex justify-end">
-          <Button variant="primary" size="md" disabled={selectedList.length === 0} onClick={handleAnnotateSelected}>
+          <Button
+            variant="primary"
+            size="md"
+            disabled={selectedList.length === 0}
+            onClick={handleAnnotateSelected}
+          >
             Identificar objetos
             {selectedList.length > 0 ? ` (${selectedList.length})` : ""}
             <span aria-hidden>→</span>

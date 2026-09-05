@@ -1,25 +1,26 @@
 import type { ImageStatus } from "@/api/schemas";
 
-const STATUS_CONFIG: Record<ImageStatus, { label: string; dot: string; bg: string; text: string }> = {
-  pending: {
-    label: "Pendiente",
-    dot: "bg-status-pending",
-    bg: "bg-status-pending-soft",
-    text: "text-status-pending",
-  },
-  in_progress: {
-    label: "En progreso",
-    dot: "bg-status-progress",
-    bg: "bg-status-progress-soft",
-    text: "text-status-progress",
-  },
-  completed: {
-    label: "Completada",
-    dot: "bg-status-done",
-    bg: "bg-status-done-soft",
-    text: "text-status-done",
-  },
-};
+const STATUS_CONFIG: Record<ImageStatus, { label: string; dot: string; bg: string; text: string }> =
+  {
+    pending: {
+      label: "Pendiente",
+      dot: "bg-status-pending",
+      bg: "bg-status-pending-soft",
+      text: "text-status-pending",
+    },
+    in_progress: {
+      label: "En progreso",
+      dot: "bg-status-progress",
+      bg: "bg-status-progress-soft",
+      text: "text-status-progress",
+    },
+    completed: {
+      label: "Completada",
+      dot: "bg-status-done",
+      bg: "bg-status-done-soft",
+      text: "text-status-done",
+    },
+  };
 
 interface StatusBadgeProps {
   status: ImageStatus;

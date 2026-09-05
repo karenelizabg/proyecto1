@@ -15,6 +15,7 @@ export function useCategories(): UseCategoriesResult {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt solo se usa para forzar el reintento.
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);

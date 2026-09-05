@@ -10,7 +10,13 @@ import { GlobalNav } from "./GlobalNav";
  * los filtros de Búsqueda) debajo del nav global, en el mismo sidebar en
  * vez de uno separado.
  */
-export function AppLayout({ children, sidebarExtra }: { children: ReactNode; sidebarExtra?: ReactNode }) {
+export function AppLayout({
+  children,
+  sidebarExtra,
+}: {
+  children: ReactNode;
+  sidebarExtra?: ReactNode;
+}) {
   return (
     <div className="flex min-h-screen flex-col bg-canvas lg:flex-row">
       <GlobalNav>{sidebarExtra}</GlobalNav>

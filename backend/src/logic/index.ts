@@ -15,6 +15,10 @@ export {
   getAnnotationsForImage,
   updateAnnotation,
 } from './annotation.service.js';
+// Esquemas de la frontera HTTP (SPEC-VALID-001): la UI los usa para validar
+// route params y query params antes de invocar a los servicios de arriba.
+export type { ImageSearchInput } from './annotation.validation.js';
+export { idParamSchema, imageSearchSchema } from './annotation.validation.js';
 export { getCategories } from './category.service.js';
 // Exportación COCO (SPEC-COCO-001)
 export type {
