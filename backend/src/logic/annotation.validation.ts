@@ -93,27 +93,6 @@ export const idParamSchema = z.coerce
   .positive({ message: 'El id debe ser mayor que cero.' });
 
 /**
- * Body de `POST /annotations`.
- * Extiende el esquema base de bbox agregando la imagen destino.
- */
-export const createAnnotationSchema = bboxBaseSchema.extend({
-  imageId: z
-    .number({ message: 'El imageId debe ser un n├║mero.' })
-    .int({ message: 'El imageId debe ser un entero.' })
-    .positive({ message: 'El imageId debe ser mayor que cero.' }),
-});
-
-export type CreateAnnotationBody = z.infer<typeof createAnnotationSchema>;
-
-/**
- * Body de `PATCH /annotations/:id`.
- * La imagen no cambia; solo la categor├¡a y la geometr├¡a de la caja.
- */
-export const updateAnnotationSchema = bboxBaseSchema;
-
-export type UpdateAnnotationBody = z.infer<typeof updateAnnotationSchema>;
-
-/**
  * Body de `POST /images/:imageId/annotations`.
  *
  * La imagen destino viaja en la ruta, no en el body. `iscrowd` es opcional
@@ -155,18 +134,6 @@ export const imageStatusTransitionSchema = z.object({
 });
 
 export type ImageStatusTransitionBody = z.infer<typeof imageStatusTransitionSchema>;
-
-/**
- * Body de `PATCH /images/:id/status`.
- * Sustituye la aserci├│n de tipo `req.body as { status?: string }`.
- */
-export const imageStatusSchema = z.object({
-  status: z.enum(imageStatusValues, {
-    message: `El status debe ser uno de: ${imageStatusValues.join(', ')}.`,
-  }),
-});
-
-export type ImageStatusBody = z.infer<typeof imageStatusSchema>;
 
 /**
  * Normaliza un query param que puede venir como lista separada por comas,
@@ -218,8 +185,8 @@ export const imageSearchSchema = z.object({
       )
       .optional(),
   ),
-  dateFrom: z.coerce.date().optional(),
-  dateTo: z.coerce.date().optional(),
+  dateFrom: z.coerce.date({ message: 'dateFrom debe tener formato de fecha válido.' }).optional(),
+  dateTo: z.coerce.date({ message: 'dateTo debe tener formato de fecha válido.' }).optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(24),
 });

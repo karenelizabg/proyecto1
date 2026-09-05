@@ -1,68 +1,77 @@
-# SPEC-VALID-001 ÔÇö Validaci├│n de la frontera HTTP con Zod
+# SPEC-VALID-001 — Validación de la frontera HTTP con Zod
 
 ## Objetivo
 
 Garantizar que **todo** dato que entra por HTTP (body, query params y route
 params) se valide con Zod **antes** de alcanzar la capa de datos, y que los
-errores devuelvan el c├│digo HTTP correcto con un mensaje accionable.
+errores devuelvan el código HTTP correcto con un mensaje accionable.
 
 ## Problema que resuelve
 
-Antes de esta especificaci├│n, algunos datos externos llegaban a la capa Data
-sin validar porque la firma de TypeScript declaraba un tipo que nadie
-verificaba en tiempo de ejecuci├│n. Ejemplos reproducidos:
+Los esquemas de route param (`idParamSchema`) y de búsqueda
+(`imageSearchSchema`) se escribieron y se probaron unitariamente, pero nunca
+se conectaron a las rutas reales de `src/ui/server.ts`: cada ruta parseaba el
+`:id` a mano con `Number.parseInt`, que **trunca en vez de rechazar** un
+valor decimal. Ejemplo reproducido:
 
-| Petici├│n                                          | Respuesta anterior                                | Problema                          |
-|---------------------------------------------------|---------------------------------------------------|-----------------------------------|
-| `POST /annotations` con `imageId: null`           | `404 La imagen con id null no existe.`            | `null` lleg├│ a la consulta SQL    |
-| `POST /annotations` con `imageId: "no-soy-numero"`| `404 La imagen con id no-soy-un-numero no existe.`| String lleg├│ a la consulta SQL    |
-| `POST /annotations` con body `{}`                 | `404 La imagen con id undefined no existe.`       | `undefined` lleg├│ a la consulta   |
+| Petición                          | Respuesta anterior                          | Problema                                   |
+|------------------------------------|----------------------------------------------|---------------------------------------------|
+| `GET /images/1.5/annotations`      | `200` con las anotaciones de la imagen **1** | `parseInt("1.5", 10)` trunca a `1`, no rechaza |
+| `GET /images/search?status=bogus`  | `200` ignorando el filtro inválido           | El filtro se armaba a mano, sin Zod          |
 
-Un dato mal formado debe producir `400 Bad Request` (petici├│n inv├ílida), no
-`404 Not Found` (el recurso no existe), y el mensaje debe se├▒alar el campo.
+Un dato mal formado debe producir `400 Bad Request` (petición inválida), no
+un `200`/`404` que oculta el error.
 
 ## Reglas
 
-1. **Todo body se parsea con Zod** antes de usarse. Ning├║n servicio recibe
-   `req.body` con un tipo declarado sin verificar; los servicios aceptan
-   `unknown` y hacen `safeParse`.
+1. **Todo body y route param se parsea con Zod** antes de usarse. Ningún
+   servicio ni ruta recibe un dato externo con un tipo declarado sin
+   verificar en tiempo de ejecución; se acepta `unknown` y se hace
+   `safeParse`.
 2. **Prohibido usar aserciones de tipo** (`as`) para describir datos externos.
    La forma de un dato externo se establece parseando, no afirmando.
-3. **Los route params se validan con Zod.** Un `:id` no num├®rico, cero o
-   negativo devuelve `400`.
+3. **Los route params se validan con Zod.** Un `:id` no numérico, decimal,
+   cero o negativo devuelve `400` (nunca se trunca ni se redondea).
 4. **Los tipos se infieren del esquema** con `z.infer<>`; no se declaran
    interfaces duplicadas a mano para datos externos.
-5. **Sem├íntica de errores:**
-   - Dato mal formado o regla de negocio violada ÔåÆ `400 Bad Request`
-   - Recurso inexistente (id v├ílido que no est├í en BD) ÔåÆ `404 Not Found`
-   - Archivo que excede la cuota ÔåÆ `413 Payload Too Large`
-6. La validaci├│n de forma ocurre **antes** de cualquier consulta a la base de
+5. **Semántica de errores:**
+   - Dato mal formado o regla de negocio violada → `400 Bad Request`
+   - Recurso inexistente (id válido que no está en BD) → `404 Not Found`
+   - Archivo que excede la cuota → `413 Payload Too Large`
+6. La validación de forma ocurre **antes** de cualquier consulta a la base de
    datos o a MinIO.
+7. **Un esquema exportado que ningún endpoint usa es un bug.** Si cambia el
+   diseño de una ruta, el esquema que la validaba se actualiza o se borra en
+   el mismo cambio — no se deja como código muerto "por si acaso".
 
-## Taxonom├¡a de errores
+## Taxonomía de errores
 
 Para que la capa UI no dependa de comparar cadenas de texto, la capa Logic
 lanza errores tipados:
 
 | Clase             | Significado                                | HTTP |
-|-------------------|--------------------------------------------|------|
-| `ValidationError` | Dato inv├ílido o regla de negocio violada   | 400  |
-| `NotFoundError`   | El recurso no existe en la base de datos   | 404  |
+|-------------------|----------------------------------------------|------|
+| `ValidationError` | Dato inválido o regla de negocio violada     | 400  |
+| `NotFoundError`   | El recurso no existe en la base de datos     | 404  |
 
-La capa UI mapea la clase del error al c├│digo HTTP. No inspecciona mensajes.
+La capa UI mapea la clase del error al código HTTP. No inspecciona mensajes.
 
 ## Fronteras cubiertas
 
-| Frontera                          | Esquema Zod                | Ubicaci├│n                        |
-|-----------------------------------|----------------------------|----------------------------------|
-| Variables de entorno              | `envSchema`                | `src/config/env.ts`              |
-| Archivo subido (MIME y tama├▒o)    | `imageUploadSchema`        | `image-upload.validation.ts`     |
-| Body de `POST /annotations`       | `createAnnotationSchema`   | `annotation.validation.ts`       |
-| Body de `PATCH /annotations/:id`  | `updateAnnotationSchema`   | `annotation.validation.ts`       |
-| Body de `PATCH /images/:id/status`| `imageStatusSchema`        | `annotation.validation.ts`       |
-| Query params de `GET /images`     | `imageSearchSchema`        | `annotation.validation.ts`       |
-| Route param `:id`                 | `idParamSchema`            | `annotation.validation.ts`       |
+| Frontera                            | Esquema Zod                     | Ubicación                    |
+|--------------------------------------|----------------------------------|-------------------------------|
+| Variables de entorno                 | `envSchema`                      | `src/config/env.ts`           |
+| Archivo subido (MIME y tamaño)       | `imageUploadSchema`              | `image-upload.validation.ts`  |
+| Body de `POST /images/:id/annotations` | `createAnnotationForImageSchema` | `annotation.validation.ts`  |
+| Body de `PATCH /annotations/:id`     | `patchAnnotationSchema`          | `annotation.validation.ts`    |
+| Body de `PATCH /images/:id/status`   | `imageStatusTransitionSchema`    | `annotation.validation.ts`    |
+| Query params de `GET /images/search` | `imageSearchSchema`              | `annotation.validation.ts`    |
+| Route param `:id` (imagen o anotación) | `idParamSchema`                 | `annotation.validation.ts`    |
+
+Cada uno de estos esquemas se importa y se usa en `src/ui/server.ts` o en el
+servicio de `src/logic/` que atiende la ruta correspondiente; no hay esquemas
+exportados sin un punto de uso en producción.
 
 ## Flujo esperado
 
-UI (dato crudo `unknown`) ÔåÆ Logic (`safeParse` + errores tipados) ÔåÆ Data
+UI (dato crudo `unknown`) → Logic (`safeParse` + errores tipados) → Data
