@@ -118,6 +118,26 @@ export const patchAnnotationSchema = createAnnotationForImageSchema
 
 export type PatchAnnotationBody = z.infer<typeof patchAnnotationSchema>;
 
+/**
+ * Combina un patch parcial con los valores actuales de la anotación.
+ *
+ * Cada campo ausente en el patch conserva su valor existente — incluido
+ * `categoryId`: la UI puede mover o redimensionar una caja sin
+ * reclasificarla, así que un patch sin `categoryId` nunca debe alterarlo.
+ */
+export function mergeAnnotationPatch(
+  existing: BboxBaseInput,
+  patch: PatchAnnotationBody,
+): BboxBaseInput {
+  return {
+    categoryId: patch.categoryId ?? existing.categoryId,
+    bboxX: patch.bboxX ?? existing.bboxX,
+    bboxY: patch.bboxY ?? existing.bboxY,
+    bboxWidth: patch.bboxWidth ?? existing.bboxWidth,
+    bboxHeight: patch.bboxHeight ?? existing.bboxHeight,
+  };
+}
+
 /** Estados v├ílidos del ciclo de anotaci├│n de una imagen. */
 export const imageStatusValues = ['pending', 'in_progress', 'completed'] as const;
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { validateBboxBase, validateBboxWithBounds } from '../src/logic/annotation.validation.js';
+import {
+  mergeAnnotationPatch,
+  validateBboxBase,
+  validateBboxWithBounds,
+} from '../src/logic/annotation.validation.js';
 
 /**
  * Pruebas asociadas a SPEC-ANNOT-001.
@@ -156,6 +160,56 @@ describe('SPEC-ANNOT-001 - validaci├│n de bounding boxes', () => {
       );
 
       expect(result.success).toBe(false);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Combinar un patch parcial con la anotación existente (PATCH /annotations/:id)
+  // -------------------------------------------------------------------------
+
+  describe('mergeAnnotationPatch', () => {
+    const existing = { categoryId: 2, bboxX: 10, bboxY: 20, bboxWidth: 100, bboxHeight: 50 };
+
+    it('conserva categoryId cuando el patch solo mueve la caja', () => {
+      const merged = mergeAnnotationPatch(existing, { bboxX: 30 });
+
+      expect(merged.categoryId).toBe(2);
+    });
+
+    it('conserva la geometría cuando el patch solo reclasifica', () => {
+      const merged = mergeAnnotationPatch(existing, { categoryId: 9 });
+
+      expect(merged).toEqual({
+        categoryId: 9,
+        bboxX: 10,
+        bboxY: 20,
+        bboxWidth: 100,
+        bboxHeight: 50,
+      });
+    });
+
+    it('sobrescribe categoryId cuando el patch lo incluye', () => {
+      const merged = mergeAnnotationPatch(existing, { categoryId: 7 });
+
+      expect(merged.categoryId).toBe(7);
+    });
+
+    it('un patch vacío devuelve exactamente los valores existentes', () => {
+      const merged = mergeAnnotationPatch(existing, {});
+
+      expect(merged).toEqual(existing);
+    });
+
+    it('sobrescribe todos los campos cuando el patch los trae todos', () => {
+      const merged = mergeAnnotationPatch(existing, {
+        categoryId: 5,
+        bboxX: 1,
+        bboxY: 2,
+        bboxWidth: 3,
+        bboxHeight: 4,
+      });
+
+      expect(merged).toEqual({ categoryId: 5, bboxX: 1, bboxY: 2, bboxWidth: 3, bboxHeight: 4 });
     });
   });
 

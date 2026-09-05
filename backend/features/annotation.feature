@@ -36,3 +36,13 @@ Feature: Validaci├│n de bounding boxes
     Given una imagen de 640x480 p├¡xeles
     When se env├¡a una caja con categoryId=0
     Then la validaci├│n debe rechazar la caja
+
+  Scenario: Mover una caja sin categoryId en el patch no debe cambiar su categoría
+    Given una anotación existente con categoryId=2
+    When se envía un patch que solo trae bboxX=30
+    Then la anotación resultante conserva categoryId=2
+
+  Scenario: Reclasificar una caja sin bbox en el patch no debe mover su geometría
+    Given una anotación existente con bboxX=10, bboxY=20, bboxWidth=100, bboxHeight=50
+    When se envía un patch que solo trae categoryId=9
+    Then la anotación resultante conserva bboxX=10, bboxY=20, bboxWidth=100, bboxHeight=50

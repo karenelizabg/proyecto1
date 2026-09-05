@@ -17,6 +17,10 @@ en la base de datos.
    El cliente nunca env├¡a ni el backend conf├¡a en un valor de ├írea externo.
 6. Si la validaci├│n falla, la anotaci├│n no debe persistirse.
 7. Ninguna caja puede quedar sin categor├¡a v├ílida.
+8. `PATCH /annotations/:id` acepta un patch parcial: un campo ausente en el
+   patch conserva su valor actual. En particular, mover o redimensionar una
+   caja sin incluir `categoryId` en el body nunca debe cambiar su
+   categor├¡a, y enviar solo `categoryId` nunca debe alterar su geometr├¡a.
 
 ## Flujo esperado
 

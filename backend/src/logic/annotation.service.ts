@@ -11,6 +11,7 @@ import {
 } from '../data/index.js';
 import {
   createAnnotationForImageSchema,
+  mergeAnnotationPatch,
   patchAnnotationSchema,
   validateBboxWithBounds,
 } from './annotation.validation.js';
@@ -129,13 +130,7 @@ export async function updateAnnotation(
   }
 
   // Se combina lo recibido con lo ya guardado para validar la caja final.
-  const merged = {
-    categoryId: patch.categoryId ?? existing.categoryId,
-    bboxX: patch.bboxX ?? existing.bboxX,
-    bboxY: patch.bboxY ?? existing.bboxY,
-    bboxWidth: patch.bboxWidth ?? existing.bboxWidth,
-    bboxHeight: patch.bboxHeight ?? existing.bboxHeight,
-  };
+  const merged = mergeAnnotationPatch(existing, patch);
 
   const bounds = validateBboxWithBounds(merged, image.width, image.height);
   if (!bounds.success) {
