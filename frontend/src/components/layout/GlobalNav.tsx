@@ -1,6 +1,6 @@
 import { LayoutDashboard, Search, Upload } from "lucide-react";
-import { NavLink } from "react-router-dom";
 import type { ComponentType, ReactNode, SVGProps } from "react";
+import { NavLink } from "react-router-dom";
 
 interface NavItem {
   label: string;

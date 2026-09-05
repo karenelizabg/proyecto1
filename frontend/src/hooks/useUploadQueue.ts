@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { deleteImage, searchPendingImages, uploadImage, validateImageFile } from "../lib/api/images";
+import {
+  deleteImage,
+  searchPendingImages,
+  uploadImage,
+  validateImageFile,
+} from "../lib/api/images";
 import type { ImageRecord, ImageStatus } from "../types/schemas";
 
 export type UploadStatus = "invalid" | "uploading" | "success" | "error";
@@ -26,7 +31,9 @@ function makeClientId(): string {
   return `upload-${crypto.randomUUID()}`;
 }
 
-export function useUploadQueue(showToast: (message: string, variant?: "error" | "success" | "info") => void) {
+export function useUploadQueue(
+  showToast: (message: string, variant?: "error" | "success" | "info") => void
+) {
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [serverPending, setServerPending] = useState<ImageRecord[]>([]);
   const [isLoadingPending, setIsLoadingPending] = useState(true);

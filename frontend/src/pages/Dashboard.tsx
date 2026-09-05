@@ -1,12 +1,12 @@
-import { Search, Upload } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { AnnotationProgressDonut } from '../components/dashboard/AnnotationProgressDonut';
-import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
-import { ObjectsPerClassChart } from '../components/dashboard/ObjectsPerClassChart';
-import { RecentUploads } from '../components/dashboard/RecentUploads';
-import { StatCard } from '../components/dashboard/StatCard';
-import { ErrorState } from '../components/ui/ErrorState';
-import { useDashboardSummary } from '../hooks/useDashboardSummary';
+import { Search, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AnnotationProgressDonut } from "../components/dashboard/AnnotationProgressDonut";
+import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
+import { ObjectsPerClassChart } from "../components/dashboard/ObjectsPerClassChart";
+import { RecentUploads } from "../components/dashboard/RecentUploads";
+import { StatCard } from "../components/dashboard/StatCard";
+import { ErrorState } from "../components/ui/ErrorState";
+import { useDashboardSummary } from "../hooks/useDashboardSummary";
 
 export function DashboardPage() {
   const summary = useDashboardSummary();
@@ -39,18 +39,34 @@ export function DashboardPage() {
           </div>
         </header>
 
-        {summary.status === 'loading' && <DashboardSkeleton />}
+        {summary.status === "loading" && <DashboardSkeleton />}
 
-        {summary.status === 'error' && (
-          <ErrorState title="No se pudo cargar el tablero." message={summary.message} onRetry={summary.reload} />
+        {summary.status === "error" && (
+          <ErrorState
+            title="No se pudo cargar el tablero."
+            message={summary.message}
+            onRetry={summary.reload}
+          />
         )}
 
-        {summary.status === 'success' && (
+        {summary.status === "success" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Fotografías subidas" value={summary.data.imagesUploaded} accent="lilac" />
-              <StatCard label="Fotografías anotadas" value={summary.data.imagesAnnotated} accent="mint" />
-              <StatCard label="Objetos identificados" value={summary.data.boundingBoxes} accent="peach" />
+              <StatCard
+                label="Fotografías subidas"
+                value={summary.data.imagesUploaded}
+                accent="lilac"
+              />
+              <StatCard
+                label="Fotografías anotadas"
+                value={summary.data.imagesAnnotated}
+                accent="mint"
+              />
+              <StatCard
+                label="Objetos identificados"
+                value={summary.data.boundingBoxes}
+                accent="peach"
+              />
               <StatCard label="Categorías" value={summary.data.categoriesCount} accent="blue" />
             </div>
 

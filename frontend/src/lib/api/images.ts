@@ -1,14 +1,21 @@
 import {
-  imageDetailResponseSchema,
-  imageSearchResponseSchema,
-  imageUploadResponseSchema,
-  patchImageStatusBodySchema,
   type ImageRecord,
   type ImageSearchResponse,
   type ImageUploadResponse,
+  imageDetailResponseSchema,
+  imageSearchResponseSchema,
+  imageUploadResponseSchema,
   type PatchImageStatusBody,
+  patchImageStatusBodySchema,
 } from "../../types/schemas";
-import { API_BASE_URL, ApiError, apiRequest, apiRequestVoid, extractMessageField, jsonBody } from "./client";
+import {
+  API_BASE_URL,
+  ApiError,
+  apiRequest,
+  apiRequestVoid,
+  extractMessageField,
+  jsonBody,
+} from "./client";
 
 export const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MiB
@@ -105,7 +112,7 @@ export function getImageFileUrl(imageId: number): string {
  */
 export function resolveBackendUrl(path: string): string {
   if (/^https?:\/\//.test(path)) return path;
-  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE_URL}${normalized}`;
 }
 

@@ -48,7 +48,7 @@ interface GetJsonOptions {
 export async function getJson<S extends z.ZodType>(
   path: string,
   schema: S,
-  options?: GetJsonOptions,
+  options?: GetJsonOptions
 ): Promise<z.infer<S>> {
   let response: Response;
   try {
@@ -62,10 +62,7 @@ export async function getJson<S extends z.ZodType>(
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      `El servidor respondió con un error (${response.status}).`,
-      response.status,
-    );
+    throw new ApiError(`El servidor respondió con un error (${response.status}).`, response.status);
   }
 
   let raw: unknown;
@@ -77,9 +74,7 @@ export async function getJson<S extends z.ZodType>(
 
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    throw new ApiParseError(
-      "La respuesta del servidor no coincide con el formato esperado.",
-    );
+    throw new ApiParseError("La respuesta del servidor no coincide con el formato esperado.");
   }
 
   return parsed.data;

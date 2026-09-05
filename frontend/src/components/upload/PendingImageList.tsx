@@ -1,6 +1,6 @@
+import type { PendingEntry } from "../../hooks/useUploadQueue";
 import { getImageFileUrl } from "../../lib/api/images";
 import { StatusBadge } from "../search/StatusBadge";
-import type { PendingEntry } from "../../hooks/useUploadQueue";
 
 function DeleteIcon() {
   return (
@@ -83,7 +83,9 @@ export function PendingImageList({
             </label>
 
             <div className="flex items-center gap-1 px-2 py-1.5">
-              <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">{entry.filename}</span>
+              <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">
+                {entry.filename}
+              </span>
               <button
                 type="button"
                 aria-label={`Eliminar ${entry.filename}`}

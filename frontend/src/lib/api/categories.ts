@@ -1,4 +1,4 @@
-import { categoriesResponseSchema, type Category } from "../../types/schemas";
+import { type Category, categoriesResponseSchema } from "../../types/schemas";
 import { apiRequest } from "./client";
 
 export function getCategories(): Promise<Category[]> {

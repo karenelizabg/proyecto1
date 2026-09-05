@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { SearchPage } from "@/pages/SearchPage";
 import { AnnotateScreen } from "@/components/annotate/AnnotateScreen";
-import { DashboardPage } from "@/pages/Dashboard";
-import { UploadScreen } from "@/components/upload/UploadScreen";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { UploadScreen } from "@/components/upload/UploadScreen";
+import { DashboardPage } from "@/pages/Dashboard";
+import { SearchPage } from "@/pages/SearchPage";
 
 export function App(): JSX.Element {
   return (

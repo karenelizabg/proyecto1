@@ -12,7 +12,12 @@ interface SelectionToolbarProps {
  * texto cuando hay al menos una card seleccionada. "Exportar" es solo visual
  * por ahora (a propósito, sin conectar todavía a ningún endpoint).
  */
-export function SelectionToolbar({ count, onClearSelection, onDelete, onExport }: SelectionToolbarProps): JSX.Element {
+export function SelectionToolbar({
+  count,
+  onClearSelection,
+  onDelete,
+  onExport,
+}: SelectionToolbarProps): JSX.Element {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent-lilac/30 bg-accent-lilac-soft px-4 py-2.5">
       <div className="flex items-center gap-3">

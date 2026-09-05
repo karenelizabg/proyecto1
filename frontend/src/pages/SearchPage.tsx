@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { DeleteImagesModal } from "@/components/search/DeleteImagesModal";
+import { FilterChips } from "@/components/search/FilterChips";
+import { FiltersSidebar } from "@/components/search/FiltersSidebar";
+import { ImagePreviewModal } from "@/components/search/ImagePreviewModal";
+import { Pagination } from "@/components/search/Pagination";
+import { ResultsGrid } from "@/components/search/ResultsGrid";
+import { SearchBar } from "@/components/search/SearchBar";
+import { SelectionToolbar } from "@/components/search/SelectionToolbar";
+import { ToastStack } from "@/components/shared/ToastStack";
 import { useCategories } from "@/hooks/useCategories";
 import { useImageSearch } from "@/hooks/useImageSearch";
 import { useToasts } from "@/hooks/useToasts";
 import { deleteImage } from "@/lib/api/images";
-import { filtersFromSearchParams, filtersToSearchParams, hasActiveFilters, type SearchFilters } from "@/lib/searchFilters";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { FiltersSidebar } from "@/components/search/FiltersSidebar";
-import { SearchBar } from "@/components/search/SearchBar";
-import { FilterChips } from "@/components/search/FilterChips";
-import { ResultsGrid } from "@/components/search/ResultsGrid";
-import { Pagination } from "@/components/search/Pagination";
-import { ImagePreviewModal } from "@/components/search/ImagePreviewModal";
-import { SelectionToolbar } from "@/components/search/SelectionToolbar";
-import { DeleteImagesModal } from "@/components/search/DeleteImagesModal";
-import { ToastStack } from "@/components/shared/ToastStack";
+import {
+  filtersFromSearchParams,
+  filtersToSearchParams,
+  hasActiveFilters,
+  type SearchFilters,
+} from "@/lib/searchFilters";
 
 export function SearchPage(): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,8 +30,12 @@ export function SearchPage(): JSX.Element {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { toasts, showToast, dismissToast } = useToasts();
-  const { categories, isLoading: categoriesLoading, error: categoriesError, retry: retryCategories } =
-    useCategories();
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    retry: retryCategories,
+  } = useCategories();
   const { images, pagination, isLoading, error, retry } = useImageSearch(filters);
 
   function applyFilters(next: Partial<SearchFilters>): void {
@@ -55,7 +64,10 @@ export function SearchPage(): JSX.Element {
     setSelectedIds(new Set());
 
     if (succeeded > 0) {
-      showToast(`${succeeded} ${succeeded === 1 ? "foto eliminada" : "fotos eliminadas"}.`, "success");
+      showToast(
+        `${succeeded} ${succeeded === 1 ? "foto eliminada" : "fotos eliminadas"}.`,
+        "success"
+      );
     }
     if (failed > 0) {
       showToast(`No se pudo eliminar ${failed} ${failed === 1 ? "foto" : "fotos"}.`, "error");

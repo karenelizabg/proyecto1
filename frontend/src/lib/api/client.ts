@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 
 /**
  * Nunca se importa Drizzle, esquemas SQL ni clientes de MinIO aquí.

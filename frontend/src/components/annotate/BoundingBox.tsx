@@ -32,6 +32,7 @@ export function BoundingBox({
   const color = annotation.category.color;
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: contiene el <button> de borrar; anidar button-en-button es HTML inválido.
     <div
       role="button"
       tabIndex={0}

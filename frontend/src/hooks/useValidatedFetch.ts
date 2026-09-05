@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { ZodSchema } from 'zod';
+import { useCallback, useEffect, useState } from "react";
+import type { ZodSchema } from "zod";
 
 /**
  * Base URL del backend. Igual que en los clientes de `lib/api` y `api`:
@@ -9,12 +9,12 @@ import type { ZodSchema } from 'zod';
  */
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_BASE_URL =
-  configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== '' ? configuredBaseUrl : '/api';
+  configuredBaseUrl !== undefined && configuredBaseUrl.trim() !== "" ? configuredBaseUrl : "/api";
 
 type FetchState<T> =
-  | { status: 'loading' }
-  | { status: 'error'; message: string }
-  | { status: 'success'; data: T };
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "success"; data: T };
 
 /**
  * Wraps native fetch + Zod validation so no component ever trusts an
@@ -22,11 +22,11 @@ type FetchState<T> =
  * error instead of silently rendering `undefined`/`NaN` in the UI.
  */
 export function useValidatedFetch<T>(url: string, schema: ZodSchema<T>) {
-  const [state, setState] = useState<FetchState<T>>({ status: 'loading' });
+  const [state, setState] = useState<FetchState<T>>({ status: "loading" });
 
   const load = useCallback(() => {
     let cancelled = false;
-    setState({ status: 'loading' });
+    setState({ status: "loading" });
 
     // La URL puede venir absoluta (http...) o relativa al backend (/dashboard...).
     // Las relativas se prefijan con la base del API para pasar por el proxy.
@@ -40,16 +40,17 @@ export function useValidatedFetch<T>(url: string, schema: ZodSchema<T>) {
         const json: unknown = await res.json();
         const parsed = schema.safeParse(json);
         if (!parsed.success) {
-          throw new Error('La respuesta del servidor no tiene el formato esperado.');
+          throw new Error("La respuesta del servidor no tiene el formato esperado.");
         }
         if (!cancelled) {
-          setState({ status: 'success', data: parsed.data });
+          setState({ status: "success", data: parsed.data });
         }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        const message = err instanceof Error ? err.message : 'Error desconocido al cargar los datos.';
-        setState({ status: 'error', message });
+        const message =
+          err instanceof Error ? err.message : "Error desconocido al cargar los datos.";
+        setState({ status: "error", message });
       });
 
     return () => {

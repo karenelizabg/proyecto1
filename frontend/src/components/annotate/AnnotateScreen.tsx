@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { AnnotationCanvas } from "./AnnotationCanvas";
-import { AnnotationsSidebar } from "./AnnotationsSidebar";
-import { LeaveConfirmModal } from "./LeaveConfirmModal";
-import { Toolbar } from "./Toolbar";
-import { QueueNav } from "./QueueNav";
-import { Stepper } from "../ui/Stepper";
 import { useCategories } from "../../hooks/useCategories";
 import { useImageAnnotations } from "../../hooks/useImageAnnotations";
 import { useToasts } from "../../hooks/useToasts";
-import { ToastStack } from "../shared/ToastStack";
 import { getImageFileUrl } from "../../lib/api/images";
 import type { AnnotateNavigationState } from "../../types/navigation";
+import { ToastStack } from "../shared/ToastStack";
+import { Stepper } from "../ui/Stepper";
+import { AnnotationCanvas } from "./AnnotationCanvas";
+import { AnnotationsSidebar } from "./AnnotationsSidebar";
+import { LeaveConfirmModal } from "./LeaveConfirmModal";
+import { QueueNav } from "./QueueNav";
+import { Toolbar } from "./Toolbar";
 
 const VIEWPORT_PADDING_PX = 48;
 const MIN_ZOOM = 0.25;
@@ -64,8 +64,12 @@ export function AnnotateScreen() {
   const [viewportSize, setViewportSize] = useState({ width: 900, height: 600 });
 
   const { toasts, showToast, dismissToast } = useToasts();
-  const { categories, isLoading: categoriesLoading, error: categoriesError, retry: retryCategories } =
-    useCategories();
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    retry: retryCategories,
+  } = useCategories();
   const {
     annotations,
     imageMeta,
@@ -86,6 +90,7 @@ export function AnnotateScreen() {
     initialStatus: navState?.statuses?.[imageId],
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: vuelve a medir cuando cambia el estado de carga/imagen, aunque el efecto solo lea el ref.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;

@@ -8,7 +8,12 @@ interface DeleteImagesModalProps {
   onConfirm: () => void;
 }
 
-export function DeleteImagesModal({ count, isDeleting, onCancel, onConfirm }: DeleteImagesModalProps): JSX.Element {
+export function DeleteImagesModal({
+  count,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: DeleteImagesModalProps): JSX.Element {
   return (
     <Modal
       title={`¿Eliminar ${count} ${count === 1 ? "foto" : "fotos"}?`}

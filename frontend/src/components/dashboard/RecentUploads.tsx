@@ -1,14 +1,14 @@
-import { resolveBackendUrl } from '../../lib/api/images';
-import type { RecentUpload } from '../../types/dashboard';
+import { resolveBackendUrl } from "../../lib/api/images";
+import type { RecentUpload } from "../../types/dashboard";
 
 type RecentUploadsProps = {
   uploads: RecentUpload[];
 };
 
-const statusConfig: Record<RecentUpload['status'], { label: string; dotClassName: string }> = {
-  completed: { label: 'Completada', dotClassName: 'bg-status-done' },
-  in_progress: { label: 'En progreso', dotClassName: 'bg-status-progress' },
-  pending: { label: 'Pendiente', dotClassName: 'bg-status-pending' },
+const statusConfig: Record<RecentUpload["status"], { label: string; dotClassName: string }> = {
+  completed: { label: "Completada", dotClassName: "bg-status-done" },
+  in_progress: { label: "En progreso", dotClassName: "bg-status-progress" },
+  pending: { label: "Pendiente", dotClassName: "bg-status-pending" },
 };
 
 export function RecentUploads({ uploads }: RecentUploadsProps) {

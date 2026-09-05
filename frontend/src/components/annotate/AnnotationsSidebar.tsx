@@ -86,7 +86,14 @@ export function AnnotationsSidebar({
       {annotations.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-6 text-center lg:py-10">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar text-ink-faint">
-            <svg viewBox="0 0 20 20" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden>
+            <svg
+              viewBox="0 0 20 20"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              aria-hidden
+            >
               <rect x="3.5" y="3.5" width="13" height="13" rx="2.5" />
             </svg>
           </div>
@@ -100,6 +107,7 @@ export function AnnotationsSidebar({
             const isSelected = selectedId === annotation.id;
             return (
               <li key={annotation.id}>
+                {/* biome-ignore lint/a11y/useSemanticElements: contiene un <button> de borrar; anidar button-en-button es HTML inválido. */}
                 <div
                   role="button"
                   tabIndex={0}

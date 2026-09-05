@@ -1,11 +1,11 @@
 import {
+  type Annotation,
   annotationSchema,
   annotationsResponseSchema,
-  createAnnotationBodySchema,
-  patchAnnotationBodySchema,
-  type Annotation,
   type CreateAnnotationBody,
+  createAnnotationBodySchema,
   type PatchAnnotationBody,
+  patchAnnotationBodySchema,
 } from "../../types/schemas";
 import { apiRequest, apiRequestVoid, jsonBody } from "./client";
 
@@ -13,10 +13,7 @@ export function getAnnotations(imageId: number): Promise<Annotation[]> {
   return apiRequest(`/images/${imageId}/annotations`, annotationsResponseSchema);
 }
 
-export function createAnnotation(
-  imageId: number,
-  body: CreateAnnotationBody
-): Promise<Annotation> {
+export function createAnnotation(imageId: number, body: CreateAnnotationBody): Promise<Annotation> {
   const validBody = createAnnotationBodySchema.parse(body);
   return apiRequest(`/images/${imageId}/annotations`, annotationSchema, {
     method: "POST",
