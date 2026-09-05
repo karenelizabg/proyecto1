@@ -242,6 +242,7 @@ Desde `frontend/`:
 
 ```bash
 npm run typecheck
+npm run lint        # Biome: cero errores y cero advertencias
 npm run build
 ```
 
